@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AtropineEnv &mdash; smpl latest documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="PenSimEnv" href="pensimenv.html" />
+    <link rel="prev" title="ReactorEnv" href="reactorenv.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> smpl
+          </a>
+              <div class="version">
+                latest
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="reactorenv.html">ReactorEnv</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">AtropineEnv</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#atropine-model">Atropine Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#control-system">Control System</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#system-design">System Design</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#system-identification">System Identification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#system-implementation">System Implementation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#atropineenv-module">AtropineEnv module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pensimenv.html">PenSimEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beerfmtenv.html">BeerFMTEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mabenv.html">MAbEnv</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/smpl.envs.html">smpl.envs package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">smpl</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>AtropineEnv</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/atropineenv.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<section id="atropineenv">
+<h1>AtropineEnv<a class="headerlink" href="#atropineenv" title="Permalink to this headline"></a></h1>
+<section id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline"></a></h2>
+<p>What is atropine? We can simply treat it as one medication that benefits human beings. A corresponding continuous production flow can be described as below:</p>
+<img alt="Fig. 1" src="_images/Atropine_Manufacturing_Process.png" />
+<p>The whole flow contains <em>six</em> stream inputs, <em>two</em> outputs (product and
+waste stream), <em>three</em> mixers, <em>three</em> tubular reactors, and <em>one</em>
+liquid-liquid separator. They are connected sequentially and the flow
+directions can be shown as those arrows. Besides, in our project, the
+flow rates of NO. 5 and 6 are kept constant.</p>
+</section>
+<section id="atropine-model">
+<h2>Atropine Model<a class="headerlink" href="#atropine-model" title="Permalink to this headline"></a></h2>
+<p>Here comes the 1st challenge, how to model the whole flow? Since the
+flow has duplicate components, like input streams, mixers, and tubular
+reactors, we can develop single
+Stream, Mixer, TubularReactor, LLSeparator
+and
+Plant
+python classes and reuse them. They are based on this
+<a class="reference external" href="https://ieeexplore.ieee.org/document/9147331">paper</a>. Let us go
+through each of them.</p>
+<ul class="simple">
+<li><p>Stream</p></li>
+</ul>
+<p>For each input stream, it has 14 reactants. This model is simple and no differential equations are included. It just
+helps calculate the related <em>mass flow rates</em>, <em>molar concentrations</em>,
+and <em>mass concentrations</em> based on the input <em>volumetric flow rates</em>.</p>
+<ul class="simple">
+<li><p>Mixer</p></li>
+</ul>
+<p>It is supposed that all the reactants are fully and intensively mixed
+and no reaction happened (no new species generated). By following a
+basic mass conservation equation, the Mixer model
+can be built.</p>
+<ul class="simple">
+<li><p>TubularReactor</p></li>
+</ul>
+<p>This model becomes complex because the partial differential equations
+(PDEs) are included. The partial derivative of the <em>molar concentration</em>
+of each species w.r.t <em>time</em> is modeled.</p>
+<img alt="_images/eq1.png" src="_images/eq1.png" />
+<p>where <span class="math notranslate nohighlight">\(c_{i,l}\)</span> is the molar concentration of species <em>i</em> at
+discretization point <em>l</em>; <em>V</em> is the reactor volume; <span class="math notranslate nohighlight">\(Q_{tot}\)</span>
+is the total volumetric flow rate; <span class="math notranslate nohighlight">\(r_{i,l}\)</span> is the reaction rate matrix.
+This model is time-consuming because it has a double for-loop
+that not only iterates all discretized points (<span class="math notranslate nohighlight">\(n_{d}\)</span> =40) but also
+iterates all 14 species.</p>
+<ul class="simple">
+<li><p>LLSeparator</p></li>
+</ul>
+<p>This part is also based on the mass conservation equation but the
+differential-algebraic equations (DAEs) are introduced.</p>
+<img alt="_images/eq2.png" src="_images/eq2.png" />
+<p>where <span class="math notranslate nohighlight">\(F_{OR,i}\)</span> and <span class="math notranslate nohighlight">\(F_{AQ,i}\)</span> are the molar flow rates of species <em>i</em> at
+the organic and aqueous phases, respectively. Also, <span class="math notranslate nohighlight">\(F_{OR,i}\)</span> and
+<span class="math notranslate nohighlight">\(F_{AQ,i}\)</span> are algebraic variables. Hence, the derivatives
+can be calculated based on the above equation, so as the algebraic.</p>
+<ul class="simple">
+<li><p>Plant</p></li>
+</ul>
+<p>Now, let us assemble the above components together and get the whole
+continuous flow. They are connected like Plant and are exactly following the design in Fig. 1. The updated
+states
+are based on the
+derivatives
+of the three tubular reactors and one liquid-liquid separator, and the
+algebraic
+of the liquid-liquid separator. Additionally, we have an extra step that
+takes the mixing
+process
+into consideration right before calculating the updated
+state
+by <a class="reference external" href="https://web.casadi.org/">CASADI</a>. In a nutshell, the <strong>Stream</strong>
+and <strong>Mixer</strong> help us preprocess the data, and the <strong>TubularReactor</strong>
+and <strong>LLSeparator</strong> provide the derivative and the algebraic for
+updating states.</p>
+</section>
+<section id="control-system">
+<h2>Control System<a class="headerlink" href="#control-system" title="Permalink to this headline"></a></h2>
+<section id="system-design">
+<h3>System Design<a class="headerlink" href="#system-design" title="Permalink to this headline"></a></h3>
+<p>So far, we have a model that represents the whole flow and it is an
+open-loop one. The next step is to design a linear MPC-based control
+system to track the steady-state inputs and output ASAP. First of all,
+let us design the overall control system as below:</p>
+<img alt="Fig. 2 Control System" src="_images/Control_System.png" />
+<p>where the <strong>Process</strong> refers to our plant model and <strong>State Estimator</strong>
+refers to a <a class="reference external" href="https://en.wikipedia.org/wiki/Kalman_filter">Kalman
+filter</a> that is used for
+states estimation; <span class="math notranslate nohighlight">\(r(t)\)</span> is the reference signal; <span class="math notranslate nohighlight">\(u(t)\)</span> is the inputs
+for the plant model and the Kalman filter; <span class="math notranslate nohighlight">\(y(t)\)</span> is the output; <span class="math notranslate nohighlight">\(x(t)\)</span>
+is the states and <span class="math notranslate nohighlight">\(\hat{x}(t)\)</span> is the estimation. The above linear system
+can be described below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">x</span><span class="p">(</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="n">Ax</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">+</span> <span class="n">Bu</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
+<span class="n">y</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="n">Cx</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">+</span> <span class="n">Du</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>kalman filter progresses like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">e</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">=</span> <span class="n">y</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">-</span> <span class="n">yhat</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
+<span class="n">xhat</span><span class="p">(</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">=</span> <span class="n">Axhat</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">+</span> <span class="n">Bu</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="o">-</span> <span class="n">Ke</span><span class="p">(</span><span class="n">K</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>where <em>e</em> is the error.</p>
+</section>
+<section id="system-identification">
+<h3>System Identification<a class="headerlink" href="#system-identification" title="Permalink to this headline"></a></h3>
+<p>In order to get the above matrics <strong>A</strong>, <strong>B</strong>, <strong>C</strong>, <strong>D,</strong> and <strong>K</strong>,
+we can take advantage of a system identification package
+<a class="reference external" href="https://github.com/CPCLAB-UNIPI/SIPPY">SIPPY</a>. And training data can be generated by the open-loop model for the identification process.</p>
+<ul>
+<li><p>With respect to the open-loop model , it has four inputs (volumetric
+flow rates u1, u2, u3, and u4 in Fig. 1) and one output (e-factor)
+that describes atropine production efficiency.</p>
+<img alt="_images/eq3.png" src="_images/eq3.png" />
+<p>The input data of the open-loop model can be acquired by random noise
+and the corresponding e-factor can be
+calculated
+based on the algebraic (less than 0.1s per run). For our case, it
+seems only 200 rows of data is enough for linear model
+identification.</p>
+</li>
+<li><p>Similar to the ML model training, a training and testing data split
+method was applied.
+However, the linear trend of the output data requires to be removed and the processed output signal is shown below.</p>
+<img alt="Fig. 3 De-trended Output Signal vs The Original" src="_images/De-trendedOutputSignalvsTheOriginal.png" />
+</li>
+<li><p>System identification is pretty simple and we chose an
+identification method of N4SID and an order of
+2.
+Also, a performance
+metric
+is designed. Finally, after the system identification, we have the
+following system:</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\begin{split}x(k+1) = \begin{bmatrix} 0.8314 &amp; -0.235 \\ 0.1032 &amp; 0.8634 \end{bmatrix} x(k) + \begin{bmatrix} 0.2570 &amp; 1.8423 &amp; 0.2785 &amp; -0.6279 \\ -0.3092 &amp; -0.7418 &amp; -0.1148 &amp; 0.3814 \end{bmatrix} u(k) \\\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{split}y(k) = \begin{bmatrix} -8.6962 &amp; -9.7070 \end{bmatrix} x(k) \\\end{split}\]</div>
+<div class="math notranslate nohighlight">
+\[\begin{split}K = \begin{bmatrix} -0.0279 \\ -0.0243 \end{bmatrix}\end{split}\]</div>
+</section>
+<section id="system-implementation">
+<h3>System Implementation<a class="headerlink" href="#system-implementation" title="Permalink to this headline"></a></h3>
+<p>We generated below the trajectory with <a class="reference external" href="https://en.wikipedia.org/wiki/Model_predictive_control">MPC</a>, and ended the simulation once it reaches the steady state (we considered this as a termination condition)
+The whole simulation represents 400 minutes in real life and the results are shown below:</p>
+<img alt="Fig. 4 Track of E-factor" src="_images/mpc1.png" />
+<img alt="Fig. 5 Track of Four Inputs" src="_images/mpc2.png" />
+<p>It can be seen that the control system successfully worked and both the
+inputs and the output reach the steady-state. The whole process (data generation, system identification,
+and MPC control) takes less than 10 seconds.</p>
+</section>
+</section>
+<section id="atropineenv-module">
+<h2>AtropineEnv module<a class="headerlink" href="#atropineenv-module" title="Permalink to this headline"></a></h2>
+<p>Following the discription above, we provide APIs as below:</p>
+<p>AtropineEnv simulates an atropine production environment.</p>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">smpl.envs.atropineenv.</span></span><span class="sig-name descname"><span class="pre">AtropineEnvGym</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">dense_reward=True</span></em>, <em class="sig-param"><span class="pre">normalize=True</span></em>, <em class="sig-param"><span class="pre">debug_mode=False</span></em>, <em class="sig-param"><span class="pre">action_dim=4</span></em>, <em class="sig-param"><span class="pre">reward_function=None</span></em>, <em class="sig-param"><span class="pre">done_calculator=None</span></em>, <em class="sig-param"><span class="pre">observation_name=None</span></em>, <em class="sig-param"><span class="pre">action_name=None</span></em>, <em class="sig-param"><span class="pre">np_dtype=&lt;class</span> <span class="pre">'numpy.float32'&gt;</span></em>, <em class="sig-param"><span class="pre">max_steps=60</span></em>, <em class="sig-param"><span class="pre">error_reward=-100000.0</span></em>, <em class="sig-param"><span class="pre">x0_loc='https://raw.githubusercontent.com/smpl-env/smpl/main/smpl/configdata/atropineenv/x0.txt'</span></em>, <em class="sig-param"><span class="pre">z0_loc='https://raw.githubusercontent.com/smpl-env/smpl/main/smpl/configdata/atropineenv/z0.txt'</span></em>, <em class="sig-param"><span class="pre">model_loc='https://github.com/smpl-env/smpl-experiments/blob/main/configdata/atropineenv/model.npy?raw=true'</span></em>, <em class="sig-param"><span class="pre">uss_subtracted=True</span></em>, <em class="sig-param"><span class="pre">reward_on_ess_subtracted=False</span></em>, <em class="sig-param"><span class="pre">reward_on_steady=True</span></em>, <em class="sig-param"><span class="pre">reward_on_absolute_efactor=False</span></em>, <em class="sig-param"><span class="pre">reward_on_actions_penalty=0.0</span></em>, <em class="sig-param"><span class="pre">reward_on_reject_actions=True</span></em>, <em class="sig-param"><span class="pre">reward_scaler=1.0</span></em>, <em class="sig-param"><span class="pre">relaxed_max_min_actions=False</span></em>, <em class="sig-param"><span class="pre">observation_include_t=True</span></em>, <em class="sig-param"><span class="pre">observation_include_action=False</span></em>, <em class="sig-param"><span class="pre">observation_include_uss=True</span></em>, <em class="sig-param"><span class="pre">observation_include_ess=True</span></em>, <em class="sig-param"><span class="pre">observation_include_e=True</span></em>, <em class="sig-param"><span class="pre">observation_include_kf=True</span></em>, <em class="sig-param"><span class="pre">observation_include_z=True</span></em>, <em class="sig-param"><span class="pre">observation_include_x=False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/atropineenv.html#AtropineEnvGym"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference internal" href="api/smpl.envs.html#smpl.envs.utils.smplEnvBase" title="smpl.envs.utils.smplEnvBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">smpl.envs.utils.smplEnvBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">done_calculator_standard</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_observation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_count</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reward</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">done</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">done_info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/atropineenv.html#AtropineEnvGym.done_calculator_standard"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><dl class="simple">
+<dt>check whether the current episode is considered finished.</dt><dd><p>returns a boolean value indicated done or not, and a dictionary with information.
+here in done_calculator_standard, done_info looks like {“terminal”: boolean, “timeout”: boolean},
+where “timeout” is true when episode end due to reaching the maximum episode length,
+“terminal” is true when “timeout” or episode end due to termination conditions such as env error encountered. (basically done)</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>current_observation</strong> (<em>[</em><em>np.ndarray</em><em>]</em>) – This is denormalized observation, as usual.</p></li>
+<li><p><strong>step_count</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>]</em>) – step_count.</p></li>
+<li><p><strong>reward</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em>]</em>) – reward.</p></li>
+<li><p><strong>done</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a><em>]</em><em>, </em><em>optional</em>) – Defaults to None.</p></li>
+<li><p><strong>done_info</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)"><em>dict</em></a><em>]</em><em>, </em><em>optional</em>) – how the environment is finished. Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>done and done_info.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>[(<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)">float</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)">dict</a>)]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">evaluate_rewards_mean_std_over_episodes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">algorithms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_states</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_plt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./plt_results'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computer_on_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/atropineenv.html#AtropineEnvGym.evaluate_rewards_mean_std_over_episodes"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>returns: mean and std of rewards over all episodes.
+since the rewards_list is not aligned (e.g. some trajectories are shorter than the others), so we cannot directly convert it to numpy array.
+we have to convert and unwrap the nested list.
+if computer_on_episodes, we first average the rewards_list over episodes, then compute the mean and std.
+else, we directly compute the mean and std for each step.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">evalute_algorithms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">algorithms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_states</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_plt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./plt_results'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/atropineenv.html#AtropineEnvGym.evalute_algorithms"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>when excecuting evalute_algorithms, the self.normalize should be False.
+algorithms: list of (algorithm, algorithm_name, normalize). algorithm has to have a method predict(observation) -&gt; action: np.ndarray.
+num_episodes: number of episodes to run
+error_reward: overwrite self.error_reward
+initial_states: None, location of numpy file of initial states or a (numpy) list of initial states
+to_plt: whether generates plot or not
+plot_dir: None or directory to save plots
+returns: list of average_rewards over each episode and num of episodes</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">show</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">efactor_fig_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_fig_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/atropineenv.html#AtropineEnvGym.plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">initial_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/atropineenv.html#AtropineEnvGym.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Required by gym, this function resets the environment and returns an initial observation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">reward_function_standard</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">previous_observation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_observation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/atropineenv.html#AtropineEnvGym.reward_function_standard"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>the s, a, r, s, a calculation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>previous_observation</strong> (<em>[</em><em>np.ndarray</em><em>]</em>) – This is denormalized observation, as usual.</p></li>
+<li><p><strong>action</strong> (<em>[</em><em>np.ndarray</em><em>]</em>) – This is denormalized action, as usual.</p></li>
+<li><p><strong>current_observation</strong> (<em>[</em><em>np.ndarray</em><em>]</em>) – This is denormalized observation, as usual.</p></li>
+<li><p><strong>reward</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em>]</em>) – If reward is provided, directly return the reward.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>reward.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)">float</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">sample_initial_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">no_sample</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lower_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.99</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.01</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/atropineenv.html#AtropineEnvGym.sample_initial_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/atropineenv.html#AtropineEnvGym.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Required by gym, his function performs one step within the environment and returns the observation, the reward, whether the episode is finished and debug information, if any.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">smpl.envs.atropineenv.</span></span><span class="sig-name descname"><span class="pre">AtropineMPC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_loc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'https://github.com/smpl-env/smpl-experiments/blob/main/configdata/atropineenv/model.npy?raw=true'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">N</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Nx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Nu</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">uss_subtracted</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reward_on_ess_subtracted</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reward_on_steady</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reward_on_absolute_efactor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reward_on_actions_penalty</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reward_on_reject_actions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">relaxed_max_min_actions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observation_include_t</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observation_include_action</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observation_include_uss</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observation_include_ess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observation_include_e</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observation_include_kf</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observation_include_z</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observation_include_x</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/atropineenv.html#AtropineMPC"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/atropineenv.html#AtropineMPC.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="reactorenv.html" class="btn btn-neutral float-left" title="ReactorEnv" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="pensimenv.html" class="btn btn-neutral float-right" title="PenSimEnv" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, SMPL Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

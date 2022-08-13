@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SMPL: Simulated Industrial Manufacturing and Process Control Learning Environments &mdash; smpl latest documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="ReactorEnv" href="reactorenv.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="#" class="icon icon-home"> smpl
+          </a>
+              <div class="version">
+                latest
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="reactorenv.html">ReactorEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="atropineenv.html">AtropineEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pensimenv.html">PenSimEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beerfmtenv.html">BeerFMTEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mabenv.html">MAbEnv</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/smpl.envs.html">smpl.envs package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">smpl</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home"></a> &raquo;</li>
+      <li>SMPL: Simulated Industrial Manufacturing and Process Control Learning Environments</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<section id="smpl-simulated-industrial-manufacturing-and-process-control-learning-environments">
+<h1>SMPL: Simulated Industrial Manufacturing and Process Control Learning Environments<a class="headerlink" href="#smpl-simulated-industrial-manufacturing-and-process-control-learning-environments" title="Permalink to this headline"></a></h1>
+<p>The Simulated Industrial Manufacturing and Process Control Learning Environments (<a class="reference external" href="https://github.com/smpl-env/smpl">SMPL</a>) supplements several process control environments to the <a class="reference external" href="https://gym.openai.com/">Openai Gym</a> family, which quenches the pain of performing Deep Reinforcement Learning algorithms on them. Furthermore, we provided <a class="reference external" href="https://github.com/rail-berkeley/d4rl.git">d4rl</a>-like wrappers for accompanied datasets, making Offline RL on those environments even smoother.</p>
+<section id="install">
+<h2>Install<a class="headerlink" href="#install" title="Permalink to this headline"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git git@github.com:smpl-env/smpl.git
+$ cd smpl
+$ pip install .
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You will need to build the <a class="reference external" href="https://github.com/smpl-env/PenSimPy.git">PenSimPy</a> environment with <a class="reference external" href="https://github.com/smpl-env/smpl">SMPL</a> separately. Namely, build and install <a class="reference external" href="https://github.com/smpl-env/fastodeint.git">fastodeint</a> following <a class="reference external" href="https://github.com/smpl-env/fastodeint/blob/master/README.md">this instruction</a>, then install <a class="reference external" href="https://github.com/smpl-env/PenSimPy.git">PenSimPy</a>.</p>
+<p>For Linux users, you can just install <a class="reference external" href="https://github.com/smpl-env/fastodeint.git">fastodeint</a> and <a class="reference external" href="https://github.com/smpl-env/PenSimPy.git">PenSimPy</a> by executing the following commands:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ sudo apt-get install libomp-dev
+$ sudo apt-get install libboost-all-dev
+$ git clone --recursive git@github.com:smpl-env/fastodeint.git
+$ cd fastodeint
+$ pip install .
+$ cd ..
+$ git clone --recursive git@github.com:smpl-env/PenSimPy.git
+$ cd PenSimPy
+$ pip install .
+</pre></div>
+</div>
+<p>If you also want to use the pre-built MPC and EMPC controllers, you would need to install mpctools by CasADi. For Linux users, you can execute the following commands:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ git clone --recursive git@github.com:smpl-env/mpc-tools-casadi.git
+$ cd mpc-tools-casadi
+$ python mpctoolssetup.py install --user
+</pre></div>
+</div>
+</div>
+</section>
+<section id="example-usage">
+<h2>Example Usage<a class="headerlink" href="#example-usage" title="Permalink to this headline"></a></h2>
+<p>See the <a class="reference external" href="https://github.com/smpl-env/smpl/blob/main/examples.ipynb">jupyter notebook</a> for example use cases.</p>
+</section>
+<section id="environments">
+<h2>Environments<a class="headerlink" href="#environments" title="Permalink to this headline"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="reactorenv.html">ReactorEnv</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="reactorenv.html#reactorenv-module">ReactorEnv module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="atropineenv.html">AtropineEnv</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="atropineenv.html#introduction">Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="atropineenv.html#atropine-model">Atropine Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="atropineenv.html#control-system">Control System</a></li>
+<li class="toctree-l2"><a class="reference internal" href="atropineenv.html#atropineenv-module">AtropineEnv module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="pensimenv.html">PenSimEnv</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="pensimenv.html#pensimenv-module">PenSimEnv module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="beerfmtenv.html">BeerFMTEnv</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="beerfmtenv.html#beerfmtenv-module">BeerFMTEnv module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="mabenv.html">MAbEnv</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="mabenv.html#introduction-to-modeling-and-operation-of-a-continuous-monoclonal-antibody-mab-manufacturing-process">Introduction to Modeling and Operation of a Continuous Monoclonal Antibody (mAb) Manufacturing Process</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mabenv.html#process-description">Process description</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mabenv.html#prebuilt-upstream-controllers">Prebuilt Upstream Controllers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mabenv.html#simulation-settings">Simulation settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mabenv.html#upstream-simulation-results">Upstream Simulation Results</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mabenv.html#upstream">Upstream</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mabenv.html#downstream">Downstream</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mabenv.html#mabenv-module">mAbEnv module</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="modules">
+<h2>Modules<a class="headerlink" href="#modules" title="Permalink to this headline"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/smpl.envs.html">smpl.envs package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/smpl.envs.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/smpl.envs.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/smpl.envs.html#module-smpl.envs.atropineenv">smpl.envs.atropineenv module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/smpl.envs.html#module-smpl.envs.beerfmtenv">smpl.envs.beerfmtenv module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/smpl.envs.html#module-smpl.envs.pensimenv">smpl.envs.pensimenv module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/smpl.envs.html#module-smpl.envs.reactorenv">smpl.envs.reactorenv module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/smpl.envs.html#module-smpl.envs.utils">smpl.envs.utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/smpl.envs.html#module-smpl.envs">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="reactorenv.html" class="btn btn-neutral float-right" title="ReactorEnv" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, SMPL Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

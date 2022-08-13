@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ReactorEnv &mdash; smpl latest documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="AtropineEnv" href="atropineenv.html" />
+    <link rel="prev" title="SMPL: Simulated Industrial Manufacturing and Process Control Learning Environments" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> smpl
+          </a>
+              <div class="version">
+                latest
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">ReactorEnv</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#reactorenv-module">ReactorEnv module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="atropineenv.html">AtropineEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pensimenv.html">PenSimEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beerfmtenv.html">BeerFMTEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mabenv.html">MAbEnv</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/smpl.envs.html">smpl.envs package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">smpl</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>ReactorEnv</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/reactorenv.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<section id="reactorenv">
+<h1>ReactorEnv<a class="headerlink" href="#reactorenv" title="Permalink to this headline"></a></h1>
+<p>We define the reactor as a Continuous Stirred Tank Reactor (CSTR) Process Model, which provides the necessary conditions for a reaction to take place. Because it is a continuous process, reactants and products are continuously fed and withdrawn from the reactor respectively.</p>
+<img alt="_images/jacketed_tank.jpg" src="_images/jacketed_tank.jpg" />
+<p>In this example, a single first order irreversible exothermic reaction of the form A → B takes place. Since the reaction is exothermic, thermal energy is removed from the reactor through a cooling jacket.</p>
+<p>The following assumptions are taken in deriving the model:</p>
+<ul class="simple">
+<li><p>The reaction mixture is well mixed. This implies that there are no spatial variations  in the reaction mixture.</p></li>
+<li><p>Negligible or no heat losses to the surroundings.</p></li>
+</ul>
+<p>Performing a component balance on reactant A, the following ordinary differential equation is obtained</p>
+<div class="math notranslate nohighlight">
+\[\frac{dc_A}{dt} =\frac{q_{in}}{\pi r^2h}(c_{Af} - c_A) - k_0 \exp(-\frac{E}{RT})c_A\]</div>
+<p>where <span class="math notranslate nohighlight">\(c_A\)</span> is the concentration of reactant A in <span class="math notranslate nohighlight">\(kmol/m^3\)</span>, <span class="math notranslate nohighlight">\(t\)</span> is the time in <span class="math notranslate nohighlight">\(min\)</span>, <span class="math notranslate nohighlight">\(q_{in}\)</span> is the volumetric flow rate of the inlet stream in <span class="math notranslate nohighlight">\(m^3/min\)</span>, <span class="math notranslate nohighlight">\(r\)</span> is the radius of the reactor in <span class="math notranslate nohighlight">\(m\)</span>, <span class="math notranslate nohighlight">\(h\)</span> is the level of reaction mixture in the reactor in <span class="math notranslate nohighlight">\(m\)</span>, <span class="math notranslate nohighlight">\(c_{Af}\)</span> is the concentration of reactant A in the feed stream in <span class="math notranslate nohighlight">\(kmol/m^3\)</span>, <span class="math notranslate nohighlight">\(k_0\)</span> is the pre-exponential factor in <span class="math notranslate nohighlight">\(min^{-1}\)</span>, <span class="math notranslate nohighlight">\(E/R\)</span> is the ratio of reaction activation energy to the universal gas constant in <span class="math notranslate nohighlight">\(K\)</span> and <span class="math notranslate nohighlight">\(T\)</span> is the reaction mixture temperature in <span class="math notranslate nohighlight">\(K\)</span>.</p>
+<p>Similarly, an energy balance can be conducted to obtain the following energy balance equation</p>
+<div class="math notranslate nohighlight">
+\[\frac{dT}{dt} = \frac{q_{in}}{\pi r^2h}(T_{f} - T) +  \frac{-\Delta H}{\rho c_p} k_0 \exp(-\frac{E}{RT})c_A + \frac{2U}{r\rho c_p}(T_c - T)\]</div>
+<p>where <span class="math notranslate nohighlight">\(T_f\)</span> is the temperature of the feed stream in <span class="math notranslate nohighlight">\(K\)</span>, <span class="math notranslate nohighlight">\(\Delta H\)</span> is the heat of reaction in <span class="math notranslate nohighlight">\(kJ/kmol\)</span>, <span class="math notranslate nohighlight">\(\rho\)</span> is the density of the reaction mixture in <span class="math notranslate nohighlight">\(kg/m^3\)</span>, <span class="math notranslate nohighlight">\(c_p\)</span> is the specific heat capacity of the reaction mixture in <span class="math notranslate nohighlight">\(kJ/kg \cdot K\)</span>, <span class="math notranslate nohighlight">\(U\)</span> is the heat transfer coefficient in <span class="math notranslate nohighlight">\(kJ/min \cdot m^2 \cdot K\)</span> and <span class="math notranslate nohighlight">\(T_c\)</span> is the coolant temperature.</p>
+<p>Finally, deriving an overall material balance around the reactor leads to the following equation</p>
+<div class="math notranslate nohighlight">
+\[\frac{dh}{dt} = \frac{q_{in}-q_{out}}{\pi r^2}\]</div>
+<p>where <span class="math notranslate nohighlight">\(q_{out}\)</span> is the volumetric flow rate of the contents out of the reactor in <span class="math notranslate nohighlight">\(m^3/min\)</span>.</p>
+<p>A summary of parameters values used in this project is presented in Table</p>
+<a class="reference internal image-reference" href="_images/table_of_param.png"><img alt="_images/table_of_param.png" class="align-center" src="_images/table_of_param.png" style="width: 400px;" /></a>
+<p>In the CSTR process model described above, <span class="math notranslate nohighlight">\(c_A\)</span>, <span class="math notranslate nohighlight">\(T\)</span>, and <span class="math notranslate nohighlight">\(h\)</span> are the state variables. The controlled variables are <span class="math notranslate nohighlight">\(c_A\)</span> and <span class="math notranslate nohighlight">\(h\)</span> while the manipulated variables are <span class="math notranslate nohighlight">\(q_{out}\)</span> and <span class="math notranslate nohighlight">\(T_c\)</span>.</p>
+<section id="reactorenv-module">
+<h2>ReactorEnv module<a class="headerlink" href="#reactorenv-module" title="Permalink to this headline"></a></h2>
+<p>Following the discription above, we provide APIs as below:</p>
+<p>ReactorEnv simulates a general reactor environment. This is supposed to be an template environment. The documentations in that file is enhanced and provided comment lines (# —- standard —- and # /—- standard —-) enclose pieces of code that should be reused by most of smpl environments. Please consult the smplEnvBase class.</p>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">smpl.envs.reactorenv.</span></span><span class="sig-name descname"><span class="pre">ReactorEnvGym</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">dense_reward=True,</span> <span class="pre">normalize=True,</span> <span class="pre">debug_mode=False,</span> <span class="pre">action_dim=2,</span> <span class="pre">observation_dim=3,</span> <span class="pre">reward_function=None,</span> <span class="pre">done_calculator=None,</span> <span class="pre">max_observations=[1.0,</span> <span class="pre">100.0,</span> <span class="pre">1.0],</span> <span class="pre">min_observations=[1e-08,</span> <span class="pre">1e-08,</span> <span class="pre">1e-08],</span> <span class="pre">max_actions=[35.0,</span> <span class="pre">0.2],</span> <span class="pre">min_actions=[15.0,</span> <span class="pre">0.05],</span> <span class="pre">error_reward=-1000.0,</span> <span class="pre">initial_state_deviation_ratio=0.3,</span> <span class="pre">compute_diffs_on_reward=False,</span> <span class="pre">np_dtype=&lt;class</span> <span class="pre">'numpy.float32'&gt;,</span> <span class="pre">sampling_time=0.1,</span> <span class="pre">max_steps=100</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorEnvGym"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference internal" href="api/smpl.envs.html#smpl.envs.utils.smplEnvBase" title="smpl.envs.utils.smplEnvBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">smpl.envs.utils.smplEnvBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">evaluate_observation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observation</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorEnvGym.evaluate_observation"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>observation: numpy array of shape (self.observation_dim)
+returns: observation evaluation (reward in a sense)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">evaluate_rewards_mean_std_over_episodes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">algorithms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_states</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_plt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./plt_results'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computer_on_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorEnvGym.evaluate_rewards_mean_std_over_episodes"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>returns: mean and std of rewards over all episodes.
+since the rewards_list is not aligned (e.g. some trajectories are shorter than the others), so we cannot directly convert it to numpy array.
+we have to convert and unwrap the nested list.
+if computer_on_episodes, we first average the rewards_list over episodes, then compute the mean and std.
+else, we directly compute the mean and std for each step.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">evalute_algorithms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">algorithms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_states</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_plt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./plt_results'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorEnvGym.evalute_algorithms"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>when excecuting evalute_algorithms, the self.normalize should be False.
+algorithms: list of (algorithm, algorithm_name, normalize). algorithm has to have a method predict(observation) -&gt; action: np.ndarray.
+num_episodes: number of episodes to run
+error_reward: overwrite self.error_reward
+initial_states: None, location of numpy file of initial states or a (numpy) list of initial states
+to_plt: whether generates plot or not
+plot_dir: None or directory to save plots
+returns: list of average_rewards over each episode and num of episodes</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">evenly_spread_initial_states</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val_per_state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dump_location</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorEnvGym.evenly_spread_initial_states"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Evenly spread initial states.
+This function is needed only if the environment has steady_observations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>val_per_state</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – how many values to sampler per state.</p>
+</dd>
+</dl>
+<p>Returns:
+[initial_states]: evenly spread initial_states.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">find_outperformances</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">algorithms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rewards_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_states</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top_k</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorEnvGym.find_outperformances"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>this function computes the outperformances of the last algorithm in algorithms.
+there are three criteria:
+if in a trajectory, the algorithm has reward &gt;= all other algorithms, the corresponding initial_state is stored to always_better.
+if in a trajectory, the algorithm’s mean reward &gt;= threshold + all other algorithms’ mean reward, the corresponding initial_state is stored to averagely_better.
+for the top_k most outperformed reward mean, the corresponding initial_state is stored to top_k_better, in ascending order.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">find_outperformances_compute_always_better</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rewards</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorEnvGym.find_outperformances_compute_always_better"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">find_outperformances_compute_average_outperformances</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rewards</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorEnvGym.find_outperformances_compute_average_outperformances"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">generate_dataset_with_algorithm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">algorithm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_states</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'d4rl'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorEnvGym.generate_dataset_with_algorithm"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>this function aims to create a dataset for offline reinforcement learning, in either d4rl or pytorch format.
+the trajectories are generated by the algorithm, which interacts with this env initialized by initial_states.
+algorithm: an instance that has a method predict(observation) -&gt; action: np.ndarray.
+if format == ‘d4rl’, returns a dictionary in d4rl format.
+else if format == ‘torch’, returns an object of type torch.utils.data.Dataset.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">initial_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorEnvGym.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>required by gym.
+This function resets the environment and returns an initial observation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">reward_function_standard</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">previous_observation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_observation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorEnvGym.reward_function_standard"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>the s, a, r, s, a calculation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>previous_observation</strong> (<em>[</em><em>np.ndarray</em><em>]</em>) – This is denormalized observation, as usual.</p></li>
+<li><p><strong>action</strong> (<em>[</em><em>np.ndarray</em><em>]</em>) – This is denormalized action, as usual.</p></li>
+<li><p><strong>current_observation</strong> (<em>[</em><em>np.ndarray</em><em>]</em>) – This is denormalized observation, as usual.</p></li>
+<li><p><strong>reward</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em>]</em>) – If reward is provided, directly return the reward.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>reward.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)">float</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">sample_initial_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorEnvGym.sample_initial_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorEnvGym.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>required by gym.
+This function performs one step within the environment and returns the observation, the reward, whether the episode is finished and debug information, if any.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">smpl.envs.reactorenv.</span></span><span class="sig-name descname"><span class="pre">ReactorMLPReinforceAgent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">act_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorMLPReinforceAgent"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>a simple torch-MLP based rl agent,.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Can either return a sampled action or the distribution the action sampled from.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.10)">type</a>]</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_distribution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorMLPReinforceAgent.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</div>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">training</span></span><em class="property"><span class="pre">:</span> <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></em></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">smpl.envs.reactorenv.</span></span><span class="sig-name descname"><span class="pre">ReactorMPC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Nt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[0.1,</span> <span class="pre">0.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">0.1,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">0.,</span> <span class="pre">0.1]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[0.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">0.]])</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">P</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">array([[0.1,</span> <span class="pre">0.,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">0.1,</span> <span class="pre">0.],</span> <span class="pre">[0.,</span> <span class="pre">0.,</span> <span class="pre">0.1]])</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorMPC"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>a simple MPC controller.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>action.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.10)">type</a>]</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">Pffunc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorMPC.Pffunc"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">build_controller</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorMPC.build_controller"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">lfunc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorMPC.lfunc"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorMPC.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">smpl.envs.reactorenv.</span></span><span class="sig-name descname"><span class="pre">ReactorModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sampling_time</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">ode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorModel.ode"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorModel.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">smpl.envs.reactorenv.</span></span><span class="sig-name descname"><span class="pre">ReactorPID</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Kis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steady_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0.8778252,</span> <span class="pre">0.659]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steady_action</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[26.85,</span> <span class="pre">0.1]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_action</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[15.0,</span> <span class="pre">0.05]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_action</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[35.0,</span> <span class="pre">0.2]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorPID"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>a simple proportional controller that utilizes the config of this environment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>action.</p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.10)">type</a>]</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/reactorenv.html#ReactorPID.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="SMPL: Simulated Industrial Manufacturing and Process Control Learning Environments" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="atropineenv.html" class="btn btn-neutral float-right" title="AtropineEnv" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, SMPL Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

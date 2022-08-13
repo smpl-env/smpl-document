@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>smpl.envs.utils &mdash; smpl latest documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> smpl
+          </a>
+              <div class="version">
+                latest
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../reactorenv.html">ReactorEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../atropineenv.html">AtropineEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pensimenv.html">PenSimEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../beerfmtenv.html">BeerFMTEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../mabenv.html">MAbEnv</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/smpl.envs.html">smpl.envs package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">smpl</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>smpl.envs.utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for smpl.envs.utils</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="c1"># ---- to capture numpy warnings ----</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">gym</span> <span class="kn">import</span> <span class="n">spaces</span><span class="p">,</span> <span class="n">Env</span>  <span class="c1"># to create an openai-gym environment https://gym.openai.com/</span>
+<span class="kn">from</span> <span class="nn">mzutils</span> <span class="kn">import</span> <span class="n">SimplePriorityQueue</span><span class="p">,</span> <span class="n">normalize_spaces</span><span class="p">,</span> <span class="n">denormalize_spaces</span><span class="p">,</span> <span class="n">mkdir_p</span>
+<span class="kn">from</span> <span class="nn">scipy.integrate</span> <span class="kn">import</span> <span class="n">solve_ivp</span>  <span class="c1"># the ode solver</span>
+<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+
+
+<div class="viewcode-block" id="TorchDatasetFromD4RL"><a class="viewcode-back" href="../../../api/smpl.envs.html#smpl.envs.utils.TorchDatasetFromD4RL">[docs]</a><span class="k">class</span> <span class="nc">TorchDatasetFromD4RL</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset_d4rl</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">import</span> <span class="nn">d3rlpy</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        dataset_d4rl should be a dictionary in the d4rl dataset format.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span> <span class="o">=</span> <span class="n">d3rlpy</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">MDPDataset</span><span class="p">(</span><span class="n">dataset_d4rl</span><span class="p">[</span><span class="s1">&#39;observations&#39;</span><span class="p">],</span> <span class="n">dataset_d4rl</span><span class="p">[</span><span class="s1">&#39;actions&#39;</span><span class="p">],</span>
+                                                 <span class="n">dataset_d4rl</span><span class="p">[</span><span class="s1">&#39;rewards&#39;</span><span class="p">],</span> <span class="n">dataset_d4rl</span><span class="p">[</span><span class="s1">&#39;terminals&#39;</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="fm">__len__</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+        <span class="n">episode</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;observations&#39;</span><span class="p">:</span> <span class="n">episode</span><span class="o">.</span><span class="n">observations</span><span class="p">,</span> <span class="s1">&#39;actions&#39;</span><span class="p">:</span> <span class="n">episode</span><span class="o">.</span><span class="n">actions</span><span class="p">,</span> <span class="s1">&#39;rewards&#39;</span><span class="p">:</span> <span class="n">episode</span><span class="o">.</span><span class="n">rewards</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="smplEnvBase"><a class="viewcode-back" href="../../../api/smpl.envs.html#smpl.envs.utils.smplEnvBase">[docs]</a><span class="k">class</span> <span class="nc">smplEnvBase</span><span class="p">(</span><span class="n">Env</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">dense_reward</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">debug_mode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action_dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">observation_dim</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+            <span class="n">max_observations</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+            <span class="n">min_observations</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">],</span>
+            <span class="n">max_actions</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+            <span class="n">min_actions</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">],</span>
+            <span class="n">observation_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">action_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">initial_state_deviation_ratio</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">np_dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+            <span class="n">max_steps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">error_reward</span><span class="o">=-</span><span class="mf">100.0</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;the __init__ of a smpl environment.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            dense_reward (bool, optional): Whether returns a dense reward or not. If True, will try to return a reward for each step. If False, will return a reward at the end of the episode. Defaults to True.</span>
+<span class="sd">            normalize (bool, optional): Whether to normalize the actions taken and observations returned to a certain range. If True, the range $$\in R^n, [-1, 1]^n$$ where n is the dimension of an action/observation. Defaults to True.</span>
+<span class="sd">            debug_mode (bool, optional): Whether to return or print extra information. Defaults to False.</span>
+<span class="sd">            action_dim (int, optional): TOMODIFY: Dimensionality of an action. Defaults to 2.</span>
+<span class="sd">            observation_dim (int, optional): TOMODIFY: Dimensionality of an observation. Defaults to 3.</span>
+<span class="sd">            reward_function ([type], optional): Provide to replace with your custom reward function. When not given, use environments&#39; default reward function. Defaults to None.</span>
+<span class="sd">            done_calculator ([type], optional): Provide to replace with your custom &quot;episode end here calculator&quot;. When not given, use environments&#39; default done calculator. Defaults to None.</span>
+<span class="sd">            max_observations (list, optional): TOMODIFY: Defaults to [1.0, 1.0].</span>
+<span class="sd">            min_observations (list, optional): TOMODIFY: Defaults to [-1.0, -1.0].</span>
+<span class="sd">            max_actions (list, optional): TOMODIFY: Defaults to [1.0, 1.0].</span>
+<span class="sd">            min_actions (list, optional): TOMODIFY: Defaults to [-1.0, -1.0].</span>
+<span class="sd">            observation_name (list, optional): the name of each observation. Defaults to None.</span>
+<span class="sd">            action_name (list, optional): the name of each action. Defaults to None.</span>
+<span class="sd">            initial_state_deviation_ratio (float, optional): the ratio of the initial state deviation to use for sample_initial_state. Defaults to None.</span>
+<span class="sd">            np_dtype (type, optional): Defaults to np.float32.</span>
+<span class="sd">            max_steps (int, optional): TOMODIFY: Defaults to None.</span>
+<span class="sd">            error_reward (float, optional): When an error is encountered during an episode (this typically means something really bad, like tank overflow). Defaults to -100.0.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># define arguments</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_reward</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dense_reward</span> <span class="o">=</span> <span class="n">dense_reward</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="n">normalize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug_mode</span> <span class="o">=</span> <span class="n">debug_mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span> <span class="o">=</span> <span class="n">action_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_dim</span> <span class="o">=</span> <span class="n">observation_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span> <span class="o">=</span> <span class="n">max_observations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span> <span class="o">=</span> <span class="n">min_observations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span> <span class="o">=</span> <span class="n">max_actions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span> <span class="o">=</span> <span class="n">min_actions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_name</span> <span class="o">=</span> <span class="n">observation_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">action_name</span> <span class="o">=</span> <span class="n">action_name</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">observation_name</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;o_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observation_dim</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">action_name</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;a_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initial_state_deviation_ratio</span> <span class="o">=</span> <span class="n">initial_state_deviation_ratio</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span> <span class="o">=</span> <span class="n">np_dtype</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">=</span> <span class="n">max_steps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span> <span class="o">=</span> <span class="n">error_reward</span>
+
+        <span class="c1"># define the state and action spaces</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">observation_space</span> <span class="o">=</span> <span class="n">spaces</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">low</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observation_dim</span><span class="p">,))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">action_space</span> <span class="o">=</span> <span class="n">spaces</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">low</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span><span class="p">,))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">observation_space</span> <span class="o">=</span> <span class="n">spaces</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span>
+                                                <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observation_dim</span><span class="p">,))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">action_space</span> <span class="o">=</span> <span class="n">spaces</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span><span class="p">,))</span>
+
+<div class="viewcode-block" id="smplEnvBase.observation_beyond_box"><a class="viewcode-back" href="../../../api/smpl.envs.html#smpl.envs.utils.smplEnvBase.observation_beyond_box">[docs]</a>    <span class="k">def</span> <span class="nf">observation_beyond_box</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observation</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;check if the observation is beyond the box, which is what we don&#39;t want.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            observation ([np.ndarray]): This is denormalized observation, as usual.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            [bool]: observation is beyond the box or not.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># TODO: check for how long?</span>
+        <span class="n">observation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">(</span><span class="n">observation</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_space</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">observation</span><span class="p">))</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">observation</span><span class="p">))</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">observation</span><span class="p">))</span></div>
+        <span class="c1"># return np.any(observation &gt; self.max_observations) or np.any(observation &lt; self.min_observations) or np.any(</span>
+        <span class="c1">#     np.isnan(observation)) or np.any(np.isinf(observation))</span>
+
+<div class="viewcode-block" id="smplEnvBase.action_beyond_box"><a class="viewcode-back" href="../../../api/smpl.envs.html#smpl.envs.utils.smplEnvBase.action_beyond_box">[docs]</a>    <span class="k">def</span> <span class="nf">action_beyond_box</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;check if the action is beyond the box, which is what we don&#39;t want.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            action ([np.ndarray]): This is denormalized action, as usual.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            [bool]: action is beyond the box or not.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">action</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_space</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">action</span><span class="p">))</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">action</span><span class="p">))</span> <span class="ow">or</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isinf</span><span class="p">(</span><span class="n">action</span><span class="p">))</span></div>
+        <span class="c1"># return np.any(action &gt; self.max_actions) or np.any(action &lt; self.min_actions) or np.any(</span>
+        <span class="c1">#     np.isnan(action)) or np.any(np.isinf(action))</span>
+
+<div class="viewcode-block" id="smplEnvBase.reward_function_standard"><a class="viewcode-back" href="../../../api/smpl.envs.html#smpl.envs.utils.smplEnvBase.reward_function_standard">[docs]</a>    <span class="k">def</span> <span class="nf">reward_function_standard</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">previous_observation</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">current_observation</span><span class="p">,</span> <span class="n">reward</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;the s, a, r, s, a calculation.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            previous_observation ([np.ndarray]): This is denormalized observation, as usual.</span>
+<span class="sd">            action ([np.ndarray]): This is denormalized action, as usual.</span>
+<span class="sd">            current_observation ([np.ndarray]): This is denormalized observation, as usual.</span>
+<span class="sd">            reward ([float]): If reward is provided, directly return the reward.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            [float]: reward.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_beyond_box</span><span class="p">(</span><span class="n">current_observation</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_beyond_box</span><span class="p">(</span><span class="n">action</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span>
+        <span class="k">elif</span> <span class="n">reward</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># TOMODIFY: insert your own reward function here.</span>
+            <span class="n">reward</span> <span class="o">=</span> <span class="n">reward</span>
+
+        <span class="n">reward</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span><span class="p">,</span> <span class="n">reward</span><span class="p">)</span>  <span class="c1"># reward cannot be smaller than the error_reward</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug_mode</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;reward:&quot;</span><span class="p">,</span> <span class="n">reward</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">reward</span></div>
+
+<div class="viewcode-block" id="smplEnvBase.done_calculator_standard"><a class="viewcode-back" href="../../../api/smpl.envs.html#smpl.envs.utils.smplEnvBase.done_calculator_standard">[docs]</a>    <span class="k">def</span> <span class="nf">done_calculator_standard</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_observation</span><span class="p">,</span> <span class="n">step_count</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">done_info</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;check whether the current episode is considered finished.</span>
+<span class="sd">            returns a boolean value indicated done or not, and a dictionary with information.</span>
+<span class="sd">            here in done_calculator_standard, done_info looks like {&quot;terminal&quot;: boolean, &quot;timeout&quot;: boolean},</span>
+<span class="sd">            where &quot;timeout&quot; is true when episode end due to reaching the maximum episode length,</span>
+<span class="sd">            &quot;terminal&quot; is true when &quot;timeout&quot; or episode end due to termination conditions such as env error encountered. (basically done)</span>
+<span class="sd">            </span>
+<span class="sd">        Args:</span>
+<span class="sd">            current_observation ([np.ndarray]): This is denormalized observation, as usual.</span>
+<span class="sd">            step_count ([int]): step_count.</span>
+<span class="sd">            reward ([float]): reward.</span>
+<span class="sd">            done ([bool], optional): Defaults to None.</span>
+<span class="sd">            done_info ([dict], optional): how the environment is finished. Defaults to None.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            [(float, dict)]: done and done_info.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">done</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">done_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">done</span><span class="p">,</span> <span class="n">done_info</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;When done is given, done_info should also be given.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">done_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">done_info</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;terminal&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;timeout&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+            <span class="c1"># done_info[&quot;terminal&quot;] and done_info[&quot;timeout&quot;] can only be flip from False to True, not vice versa.</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;terminal&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;timeout&quot;</span><span class="p">]:</span>
+                <span class="n">done</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">return</span> <span class="n">done</span><span class="p">,</span> <span class="n">done_info</span>
+
+        <span class="c1"># check for valid observation</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_beyond_box</span><span class="p">(</span><span class="n">current_observation</span><span class="p">):</span>
+            <span class="c1"># here we dont have action_beyond_box since action should not be passed in to done_calculator_standard.</span>
+            <span class="c1"># however if action is beyond the box in step fucntion, reward_function_standard has already checked it</span>
+            <span class="c1"># and the error_reward check below will be triggered.</span>
+            <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;terminal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">done</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># check for valid reward</span>
+        <span class="k">if</span> <span class="n">reward</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span><span class="p">:</span>
+            <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;terminal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">done</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">reward</span><span class="p">):</span>
+            <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;terminal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">done</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># check for step_count</span>
+        <span class="k">if</span> <span class="n">step_count</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span><span class="p">:</span>  <span class="c1"># same as range(0, max_steps)</span>
+            <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;terminal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;timeout&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">done</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># TOMODIFY: insert your own done calculator here.</span>
+
+        <span class="k">return</span> <span class="n">done</span><span class="p">,</span> <span class="n">done_info</span></div>
+
+<div class="viewcode-block" id="smplEnvBase.observation_done_and_reward_calculator"><a class="viewcode-back" href="../../../api/smpl.envs.html#smpl.envs.utils.smplEnvBase.observation_done_and_reward_calculator">[docs]</a>    <span class="k">def</span> <span class="nf">observation_done_and_reward_calculator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_observation</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">step_reward</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                               <span class="n">done_info</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;the s, a, r, s, a rollout, with error checks.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            current_observation (list or np.ndarray): This is denormalized observation, as usual.</span>
+<span class="sd">            previous_observation (np.ndarray): This is denormalized observation, as usual.</span>
+<span class="sd">            action (np.ndarray): This is denormalized action, as usual.</span>
+<span class="sd">            normalize (bool): Defaults to None.</span>
+<span class="sd">            step_reward (float, optional): The reward of current step. Defaults to None.</span>
+<span class="sd">            done_info (dict, optional): Defaults to None.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            observation (np.ndarray): This is the returned observation controlled by the normalize argument, for step function.</span>
+<span class="sd">            [(float, bool, dict)]: reward, done and done_info.</span>
+<span class="sd">            done_info looks like {&quot;timeout&quot;: boolean, &quot;error_occurred&quot;: boolean, &quot;terminal&quot;: boolean},</span>
+<span class="sd">            where &quot;timeout&quot; is true when episode end due to reaching the maximum episode length,</span>
+<span class="sd">            &quot;error_occurred&quot;: is true when episode end due to env error encountered,</span>
+<span class="sd">            &quot;terminal&quot; is true when &quot;timeout&quot; or episode end due to termination conditions such as product collection is finished. (basically done).</span>
+<span class="sd">            &quot;terminal&quot; should be True whenever timeout or error_occurred.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">current_observation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">current_observation</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">done_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">done_info</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;timeout&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;error_occurred&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;terminal&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+            <span class="c1"># done_info[&quot;terminal&quot;] and done_info[&quot;timeout&quot;] can only be flip from False to True, not vice versa.</span>
+
+        <span class="c1"># check for step_count</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_count</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span><span class="p">:</span>  <span class="c1"># same as range(0, max_steps)</span>
+            <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;terminal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;timeout&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># check for valid observation and action</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_beyond_box</span><span class="p">(</span><span class="n">current_observation</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_beyond_box</span><span class="p">(</span><span class="n">action</span><span class="p">):</span>
+            <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;terminal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;error_occurred&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># check for valid reward</span>
+        <span class="k">if</span> <span class="n">step_reward</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span><span class="p">:</span>
+            <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;terminal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;error_occurred&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">step_reward</span><span class="p">):</span>
+            <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;terminal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;error_occurred&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># TOMODIFY: mostly you won&#39;t, but you can add your own done calculation here if necessary.</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;terminal&quot;</span><span class="p">]:</span>
+            <span class="c1"># TOMODIFY: compute your reward here, or use the reward argument passed in by step function.</span>
+            <span class="n">step_reward</span> <span class="o">=</span> <span class="n">step_reward</span>
+
+        <span class="c1"># check for valid reward, again.</span>
+        <span class="n">step_reward</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span><span class="p">,</span> <span class="n">step_reward</span><span class="p">)</span>  <span class="c1"># reward cannot be smaller than the error_reward</span>
+        <span class="k">if</span> <span class="n">step_reward</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span><span class="p">:</span>
+            <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;terminal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;error_occurred&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">step_reward</span><span class="p">):</span>
+            <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;terminal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;error_occurred&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;error_occurred&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;timeout&quot;</span><span class="p">]:</span>
+            <span class="k">assert</span> <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;terminal&quot;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;error_occurred&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>  <span class="c1"># error occured. Set reward to self.error_reward.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">total_reward</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span>
+            <span class="n">reward</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># figure out step_reward or total_reward to return.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">total_reward</span> <span class="o">+=</span> <span class="n">step_reward</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dense_reward</span><span class="p">:</span>
+                <span class="n">reward</span> <span class="o">=</span> <span class="n">step_reward</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;terminal&quot;</span><span class="p">]:</span>
+                <span class="n">reward</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">reward</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_reward</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug_mode</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;reward:&quot;</span><span class="p">,</span> <span class="n">reward</span><span class="p">)</span>
+
+        <span class="n">observation</span> <span class="o">=</span> <span class="n">current_observation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">previous_observation</span> <span class="o">=</span> <span class="n">observation</span>
+        <span class="n">observation</span> <span class="o">=</span> <span class="n">observation</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">,</span>
+                                       <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">)</span>  <span class="c1"># clip observation so that it won&#39;t be beyond the box</span>
+        <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+            <span class="n">observation</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">normalize_spaces</span><span class="p">(</span><span class="n">observation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">observation</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;terminal&quot;</span><span class="p">],</span> <span class="n">done_info</span></div>
+
+<div class="viewcode-block" id="smplEnvBase.sample_initial_state"><a class="viewcode-back" href="../../../api/smpl.envs.html#smpl.envs.utils.smplEnvBase.sample_initial_state">[docs]</a>    <span class="k">def</span> <span class="nf">sample_initial_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_space</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="smplEnvBase.reset"><a class="viewcode-back" href="../../../api/smpl.envs.html#smpl.envs.utils.smplEnvBase.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">initial_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Required by gym, this function resets the environment and returns an initial observation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_reward</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="n">initial_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">initial_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">initial_state</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+            <span class="n">observation</span> <span class="o">=</span> <span class="n">initial_state</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">init_observation</span> <span class="o">=</span> <span class="n">initial_state</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">observation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_initial_state</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">init_observation</span> <span class="o">=</span> <span class="n">observation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">previous_observation</span> <span class="o">=</span> <span class="n">observation</span>
+
+        <span class="c1"># TOMODIFY: reset your environment here.</span>
+
+        <span class="n">normalize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="k">if</span> <span class="n">normalize</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">normalize</span>
+        <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+            <span class="n">observation</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">normalize_spaces</span><span class="p">(</span><span class="n">observation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">observation</span></div>
+
+<div class="viewcode-block" id="smplEnvBase.step"><a class="viewcode-back" href="../../../api/smpl.envs.html#smpl.envs.utils.smplEnvBase.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Required by gym, his function performs one step within the environment and returns the observation, the reward, whether the episode is finished and debug information, if any.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug_mode</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;action:&quot;</span><span class="p">,</span> <span class="n">action</span><span class="p">)</span>
+        <span class="n">reward</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">done_info</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">action</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+        <span class="n">normalize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="k">if</span> <span class="n">normalize</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">normalize</span>
+        <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+            <span class="n">action</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">denormalize_spaces</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># TOMODIFY: proceed your environment here and collect the observation. The observation should be a numpy array.</span>
+            <span class="c1"># optionally, done or done_info cane be provided here.</span>
+            <span class="c1"># If done = True, then done_info[&quot;terminal&quot;] and at least one of done_info[&quot;timeout&quot;] or done_info[&quot;error_occurred&quot;] should be True.</span>
+            <span class="n">observation</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span>
+            <span class="c1"># done_info = {&quot;timeout&quot;: boolean, &quot;error_occurred&quot;: boolean, &quot;terminal&quot;: boolean}</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">observation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span>
+            <span class="n">done_info</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;timeout&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;error_occurred&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;terminal&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+
+        <span class="n">observation</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">done_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_done_and_reward_calculator</span><span class="p">(</span><span class="n">observation</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span>
+                                                                                           <span class="n">normalize</span><span class="o">=</span><span class="n">normalize</span><span class="p">,</span>
+                                                                                           <span class="n">step_reward</span><span class="o">=</span><span class="n">reward</span><span class="p">,</span>
+                                                                                           <span class="n">done_info</span><span class="o">=</span><span class="n">done_info</span><span class="p">)</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">info</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">done_info</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">observation</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">info</span></div>
+
+<div class="viewcode-block" id="smplEnvBase.set_initial_states"><a class="viewcode-back" href="../../../api/smpl.envs.html#smpl.envs.utils.smplEnvBase.set_initial_states">[docs]</a>    <span class="k">def</span> <span class="nf">set_initial_states</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">initial_states</span><span class="p">,</span> <span class="n">num_episodes</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">initial_states</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">initial_states</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">sample_initial_state</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_episodes</span><span class="p">)]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">initial_states</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">initial_states</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">initial_states</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">initial_states</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_episodes</span>
+        <span class="k">return</span> <span class="n">initial_states</span></div>
+
+<div class="viewcode-block" id="smplEnvBase.evenly_spread_initial_states"><a class="viewcode-back" href="../../../api/smpl.envs.html#smpl.envs.utils.smplEnvBase.evenly_spread_initial_states">[docs]</a>    <span class="k">def</span> <span class="nf">evenly_spread_initial_states</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val_per_state</span><span class="p">,</span> <span class="n">dump_location</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Evenly spread initial states.</span>
+<span class="sd">        This function is needed only if the environment has steady_observations. </span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            val_per_state (int): how many values to sampler per state.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">        [initial_states]: evenly spread initial_states.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">initial_state_deviation_ratio</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_state_deviation_ratio</span>
+        <span class="n">steady_observations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">steady_observations</span>
+        <span class="n">len_obs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">steady_observations</span><span class="p">)</span>
+        <span class="n">val_range</span> <span class="o">=</span> <span class="n">val_per_state</span> <span class="o">**</span> <span class="n">len_obs</span>
+        <span class="n">initial_states</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">val_range</span><span class="p">,</span> <span class="n">len_obs</span><span class="p">])</span>
+        <span class="n">tmp_o</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">oi</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">len_obs</span><span class="p">):</span>
+            <span class="n">tmp_o</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">steady_observations</span><span class="p">[</span><span class="n">oi</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">initial_state_deviation_ratio</span><span class="p">),</span>
+                                     <span class="n">steady_observations</span><span class="p">[</span><span class="n">oi</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">initial_state_deviation_ratio</span><span class="p">),</span> <span class="n">num</span><span class="o">=</span><span class="n">val_per_state</span><span class="p">,</span>
+                                     <span class="n">endpoint</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">val_range</span><span class="p">):</span>
+            <span class="n">tmp_val_range</span> <span class="o">=</span> <span class="n">i</span>
+            <span class="n">curr_val</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">oi</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">len_obs</span><span class="p">):</span>
+                <span class="n">rmder</span> <span class="o">=</span> <span class="n">tmp_val_range</span> <span class="o">%</span> <span class="n">val_per_state</span>
+                <span class="n">curr_val</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp_o</span><span class="p">[</span><span class="n">oi</span><span class="p">][</span><span class="n">rmder</span><span class="p">])</span>
+                <span class="n">tmp_val_range</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">tmp_val_range</span> <span class="o">-</span> <span class="n">rmder</span><span class="p">)</span> <span class="o">/</span> <span class="n">val_per_state</span><span class="p">)</span>
+            <span class="n">initial_states</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">curr_val</span>
+        <span class="k">if</span> <span class="n">dump_location</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">dump_location</span><span class="p">,</span> <span class="n">initial_states</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">initial_states</span></div>
+
+<div class="viewcode-block" id="smplEnvBase.evalute_algorithms"><a class="viewcode-back" href="../../../api/smpl.envs.html#smpl.envs.utils.smplEnvBase.evalute_algorithms">[docs]</a>    <span class="k">def</span> <span class="nf">evalute_algorithms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">algorithms</span><span class="p">,</span> <span class="n">num_episodes</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">error_reward</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">initial_states</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">to_plt</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                           <span class="n">plot_dir</span><span class="o">=</span><span class="s1">&#39;./plt_results&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        when excecuting evalute_algorithms, the self.normalize should be False.</span>
+<span class="sd">        algorithms: list of (algorithm, algorithm_name, normalize). algorithm has to have a method predict(observation) -&gt; action: np.ndarray.</span>
+<span class="sd">        num_episodes: number of episodes to run</span>
+<span class="sd">        error_reward: overwrite self.error_reward</span>
+<span class="sd">        initial_states: None, location of numpy file of initial states or a (numpy) list of initial states</span>
+<span class="sd">        to_plt: whether generates plot or not</span>
+<span class="sd">        plot_dir: None or directory to save plots</span>
+<span class="sd">        returns: observations_list, actions_list, rewards_list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="ow">is</span> <span class="kc">False</span>
+        <span class="k">except</span> <span class="ne">AssertionError</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;env.normalize should be False when executing evalute_algorithms&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">error_reward</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span> <span class="o">=</span> <span class="n">error_reward</span>
+        <span class="k">if</span> <span class="n">plot_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mkdir_p</span><span class="p">(</span><span class="n">plot_dir</span><span class="p">)</span>
+        <span class="n">initial_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_initial_states</span><span class="p">(</span><span class="n">initial_states</span><span class="p">,</span> <span class="n">num_episodes</span><span class="p">)</span>
+        <span class="n">observations_list</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">))]</span>  <span class="c1"># observations_list[i][j][t][k] is algorithm_i_game_j_observation_t_element_k</span>
+        <span class="n">actions_list</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span>
+                        <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">))]</span>  <span class="c1"># actions_list[i][j][t][k] is algorithm_i_game_j_action_t_element_k</span>
+        <span class="n">rewards_list</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">))]</span>  <span class="c1"># rewards_list[i][j][t] is algorithm_i_game_j_reward_t</span>
+        <span class="k">for</span> <span class="n">n_epi</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">num_episodes</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">n_algo</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)):</span>
+                <span class="n">algo</span><span class="p">,</span> <span class="n">algo_name</span><span class="p">,</span> <span class="n">normalize</span> <span class="o">=</span> <span class="n">algorithms</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">algo</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+                <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                    <span class="k">pass</span>
+                <span class="n">algo_observes</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">algo_actions</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">algo_rewards</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># list, for this algorithm, reawards of this trajectory.</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">init_obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">initial_state</span><span class="o">=</span><span class="n">initial_states</span><span class="p">[</span><span class="n">n_epi</span><span class="p">])</span>
+                <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>  <span class="c1"># means env cant set with initial_state, like PenSimEnvGym</span>
+                    <span class="n">init_obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+                <span class="c1"># algo_observes.append(init_obs)</span>
+                <span class="n">o</span> <span class="o">=</span> <span class="n">init_obs</span>
+                <span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">while</span> <span class="ow">not</span> <span class="n">done</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+                        <span class="n">o</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">normalize_spaces</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">)</span>
+                    <span class="n">a</span> <span class="o">=</span> <span class="n">algo</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+                        <span class="n">a</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">denormalize_spaces</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span><span class="p">)</span>
+                    <span class="n">algo_actions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+                    <span class="n">o</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+                    <span class="n">algo_observes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
+                    <span class="n">algo_rewards</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+                <span class="n">observations_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">algo_observes</span><span class="p">)</span>
+                <span class="n">actions_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">algo_actions</span><span class="p">)</span>
+                <span class="n">rewards_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">algo_rewards</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">to_plt</span><span class="p">:</span>
+                <span class="c1"># plot observations</span>
+                <span class="k">for</span> <span class="n">n_o</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observation_dim</span><span class="p">):</span>
+                    <span class="n">o_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_name</span><span class="p">[</span><span class="n">n_o</span><span class="p">]</span>
+
+                    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s2">&quot;all&quot;</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">o_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">n_algo</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)):</span>
+                        <span class="n">alpha</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.7</span> <span class="o">**</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">n_algo</span><span class="p">))</span>
+                        <span class="n">_</span><span class="p">,</span> <span class="n">algo_name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">algorithms</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span>
+                        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">observations_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">])[:,</span> <span class="n">n_o</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="n">algo_name</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">initial_states</span><span class="p">[</span><span class="n">n_epi</span><span class="p">][</span><span class="n">n_o</span><span class="p">]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span><span class="p">)],</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span>
+                             <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;initial_</span><span class="si">{</span><span class="n">o_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">initial_states</span><span class="p">[</span><span class="n">n_epi</span><span class="p">][</span><span class="n">n_o</span><span class="p">]),</span> <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">initial_states</span><span class="p">[</span><span class="n">n_epi</span><span class="p">][</span><span class="n">n_o</span><span class="p">]))</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">plot_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">path_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">plot_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n_epi</span><span class="si">}</span><span class="s2">_observation_</span><span class="si">{</span><span class="n">o_name</span><span class="si">}</span><span class="s2">.png&quot;</span><span class="p">)</span>
+                        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">path_name</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+                <span class="c1"># plot actions</span>
+                <span class="k">for</span> <span class="n">n_a</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span><span class="p">):</span>
+                    <span class="n">a_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_name</span><span class="p">[</span><span class="n">n_a</span><span class="p">]</span>
+
+                    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s2">&quot;all&quot;</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">a_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">n_algo</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)):</span>
+                        <span class="n">alpha</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.7</span> <span class="o">**</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">n_algo</span><span class="p">))</span>
+                        <span class="n">_</span><span class="p">,</span> <span class="n">algo_name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">algorithms</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span>
+                        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">actions_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">])[:,</span> <span class="n">n_a</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="n">algo_name</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">plot_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">path_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">plot_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n_epi</span><span class="si">}</span><span class="s2">_action_</span><span class="si">{</span><span class="n">a_name</span><span class="si">}</span><span class="s2">.png&quot;</span><span class="p">)</span>
+                        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">path_name</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+                <span class="c1"># plot rewards</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s2">&quot;all&quot;</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;reward&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">n_algo</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)):</span>
+                    <span class="n">alpha</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.7</span> <span class="o">**</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">n_algo</span><span class="p">))</span>
+                    <span class="n">_</span><span class="p">,</span> <span class="n">algo_name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">algorithms</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">rewards_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">label</span><span class="o">=</span><span class="n">algo_name</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">plot_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">path_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">plot_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n_epi</span><span class="si">}</span><span class="s2">_reward.png&quot;</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">path_name</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="n">observations_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">observations_list</span><span class="p">)</span>
+        <span class="n">actions_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">actions_list</span><span class="p">)</span>
+        <span class="n">rewards_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">rewards_list</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">observations_list</span><span class="p">,</span> <span class="n">actions_list</span><span class="p">,</span> <span class="n">rewards_list</span></div>
+
+<div class="viewcode-block" id="smplEnvBase.algorithms_to_algo_names"><a class="viewcode-back" href="../../../api/smpl.envs.html#smpl.envs.utils.smplEnvBase.algorithms_to_algo_names">[docs]</a>    <span class="k">def</span> <span class="nf">algorithms_to_algo_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">algorithms</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            algorithms: list of (algorithm, algorithm_name, normalize).</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            list of algorithm_name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">algo_names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">algo</span><span class="p">,</span> <span class="n">algo_name</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">algorithms</span><span class="p">:</span>
+            <span class="n">algo_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">algo_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">algo_names</span></div>
+
+<div class="viewcode-block" id="smplEnvBase.report_rewards"><a class="viewcode-back" href="../../../api/smpl.envs.html#smpl.envs.utils.smplEnvBase.report_rewards">[docs]</a>    <span class="k">def</span> <span class="nf">report_rewards</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rewards_list</span><span class="p">,</span> <span class="n">algo_names</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns: mean and std of rewards over all episodes.</span>
+<span class="sd">        since the rewards_list is not aligned (e.g. some trajectories are shorter than the others), so we cannot directly convert it to numpy array.</span>
+<span class="sd">        we have to convert and unwrap the nested list.</span>
+<span class="sd">        on_episodes first average the rewards_list over episodes, then compute the mean and std.</span>
+<span class="sd">        all_rewards directly compute the mean and std for each step.</span>
+<span class="sd">        # rewards_list[i][j][t] is algorithm_i_game_j_reward_t.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="n">algo_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">algo_names</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rewards_list</span><span class="p">)):</span>
+                <span class="n">algo_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;algo_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">num_episodes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rewards_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">n_algo</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algo_names</span><span class="p">)):</span>
+            <span class="n">algo_name</span> <span class="o">=</span> <span class="n">algo_names</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span>
+            <span class="n">rewards_list_curr_algo</span> <span class="o">=</span> <span class="n">rewards_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span>
+            <span class="n">rewards_mean_over_episodes</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># rewards_mean_over_episodes[n_epi] is mean of rewards of n_epi</span>
+            <span class="k">for</span> <span class="n">n_epi</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_episodes</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">rewards_list_curr_algo</span><span class="p">[</span><span class="n">n_epi</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span><span class="p">:</span>
+                    <span class="n">rewards_mean_over_episodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">rewards_mean_over_episodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">rewards_list_curr_algo</span><span class="p">[</span><span class="n">n_epi</span><span class="p">]))</span>
+            <span class="n">on_episodes_reward_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">rewards_mean_over_episodes</span><span class="p">)</span>
+            <span class="n">on_episodes_reward_std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">rewards_mean_over_episodes</span><span class="p">)</span>
+            <span class="n">unwrap_list</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">games_r_list</span> <span class="ow">in</span> <span class="n">rewards_list_curr_algo</span><span class="p">:</span>
+                <span class="n">unwrap_list</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="n">games_r_list</span><span class="p">)</span>
+            <span class="n">all_reward_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">unwrap_list</span><span class="p">)</span>
+            <span class="n">all_reward_std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">unwrap_list</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">algo_name</span><span class="si">}</span><span class="s2">_on_episodes_reward_mean: </span><span class="si">{</span><span class="n">on_episodes_reward_mean</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">result_dict</span><span class="p">[</span><span class="n">algo_name</span> <span class="o">+</span> <span class="s2">&quot;_on_episodes_reward_mean&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">on_episodes_reward_mean</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">algo_name</span><span class="si">}</span><span class="s2">_on_episodes_reward_std: </span><span class="si">{</span><span class="n">on_episodes_reward_std</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">result_dict</span><span class="p">[</span><span class="n">algo_name</span> <span class="o">+</span> <span class="s2">&quot;_on_episodes_reward_std&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">on_episodes_reward_std</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">algo_name</span><span class="si">}</span><span class="s2">_all_reward_mean: </span><span class="si">{</span><span class="n">all_reward_mean</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">result_dict</span><span class="p">[</span><span class="n">algo_name</span> <span class="o">+</span> <span class="s2">&quot;_all_reward_mean&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">all_reward_mean</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">algo_name</span><span class="si">}</span><span class="s2">_all_reward_std: </span><span class="si">{</span><span class="n">all_reward_std</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">result_dict</span><span class="p">[</span><span class="n">algo_name</span> <span class="o">+</span> <span class="s2">&quot;_all_reward_std&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">all_reward_std</span>
+        <span class="n">mkdir_p</span><span class="p">(</span><span class="n">save_dir</span><span class="p">)</span>
+        <span class="n">f_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">save_dir</span><span class="p">,</span> <span class="s1">&#39;result.json&#39;</span><span class="p">)</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">result_dict</span><span class="p">,</span> <span class="nb">open</span><span class="p">(</span><span class="n">f_dir</span><span class="p">,</span> <span class="s1">&#39;w+&#39;</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">result_dict</span></div>
+
+<div class="viewcode-block" id="smplEnvBase.dataset_to_observations_actions_rewards_list"><a class="viewcode-back" href="../../../api/smpl.envs.html#smpl.envs.utils.smplEnvBase.dataset_to_observations_actions_rewards_list">[docs]</a>    <span class="k">def</span> <span class="nf">dataset_to_observations_actions_rewards_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;_summary_</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            dataset (_type_): d4rl or torch format dataset obtained from generate_dataset_with_algorithm</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            the same as evalute_algorithms</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">TorchDatasetFromD4RL</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>  <span class="c1"># convert to torch dataset</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="n">observations_list_0</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">actions_list_0</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">rewards_list_0</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># observations_list[i][j][t][k] is algorithm_i_game_j_observation_t_element_k</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)):</span>
+            <span class="n">curr_game</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+            <span class="n">observations_list_0</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">curr_game</span><span class="p">[</span><span class="s1">&#39;observations&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+            <span class="n">actions_list_0</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">curr_game</span><span class="p">[</span><span class="s1">&#39;actions&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+            <span class="n">rewards_list_0</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">curr_game</span><span class="p">[</span><span class="s1">&#39;rewards&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+        <span class="n">observations_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">observations_list_0</span><span class="p">]</span>
+        <span class="n">actions_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">actions_list_0</span><span class="p">]</span>
+        <span class="n">rewards_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">rewards_list_0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">observations_list</span><span class="p">,</span> <span class="n">actions_list</span><span class="p">,</span> <span class="n">rewards_list</span></div>
+
+<div class="viewcode-block" id="smplEnvBase.generate_dataset_with_algorithm"><a class="viewcode-back" href="../../../api/smpl.envs.html#smpl.envs.utils.smplEnvBase.generate_dataset_with_algorithm">[docs]</a>    <span class="k">def</span> <span class="nf">generate_dataset_with_algorithm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">algorithm</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_episodes</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">error_reward</span><span class="o">=-</span><span class="mf">1000.0</span><span class="p">,</span>
+                                        <span class="n">initial_states</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;d4rl&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        this function aims to create a dataset for offline reinforcement learning, in either d4rl or pytorch format.</span>
+<span class="sd">        the trajectories are generated by the algorithm, which interacts with this env initialized by initial_states.</span>
+<span class="sd">        algorithm: an instance that has a method predict(observation) -&gt; action: np.ndarray.</span>
+<span class="sd">        if format == &#39;d4rl&#39;, returns a dictionary in d4rl format.</span>
+<span class="sd">        else if format == &#39;torch&#39;, returns an object of type torch.utils.data.Dataset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">normalize</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">normalize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span>
+        <span class="n">initial_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_initial_states</span><span class="p">(</span><span class="n">initial_states</span><span class="p">,</span> <span class="n">num_episodes</span><span class="p">)</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;observations&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;actions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;rewards&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;terminals&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;timeouts&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;predict_time_taken&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">n_epi</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">num_episodes</span><span class="p">)):</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">initial_state</span><span class="o">=</span><span class="n">initial_states</span><span class="p">[</span><span class="n">n_epi</span><span class="p">])</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">timeout</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">final_done</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># to still record for the last t when done</span>
+            <span class="k">while</span> <span class="ow">not</span> <span class="n">final_done</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">done</span><span class="p">:</span>
+                    <span class="n">final_done</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="c1"># tmp_o is to be normalized, if normalize is true.</span>
+                <span class="n">tmp_o</span> <span class="o">=</span> <span class="n">o</span>
+                <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+                    <span class="n">tmp_o</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">normalize_spaces</span><span class="p">(</span><span class="n">tmp_o</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">)</span>
+                <span class="n">curr_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="n">algorithm</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">tmp_o</span><span class="p">)</span>
+                <span class="n">time_taken</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">curr_time</span>
+                <span class="n">curr_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+                    <span class="n">a</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">denormalize_spaces</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span><span class="p">)</span>
+                <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;observations&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
+                <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;actions&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+                <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;rewards&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+                <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;terminals&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">done</span><span class="p">)</span>
+                <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;timeouts&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">timeout</span><span class="p">)</span>
+                <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;predict_time_taken&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time_taken</span><span class="p">)</span>
+
+                <span class="n">o</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+                <span class="n">timeout</span> <span class="o">=</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;timeout&#39;</span><span class="p">]</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;observations&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;observations&quot;</span><span class="p">])</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;actions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;actions&quot;</span><span class="p">])</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;rewards&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;rewards&quot;</span><span class="p">])</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;terminals&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;terminals&quot;</span><span class="p">])</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;timeouts&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;timeouts&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="s1">&#39;d4rl&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">dataset</span>
+        <span class="k">elif</span> <span class="nb">format</span> <span class="o">==</span> <span class="s1">&#39;torch&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">TorchDatasetFromD4RL</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;format </span><span class="si">{</span><span class="nb">format</span><span class="si">}</span><span class="s2"> is not supported.&quot;</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, SMPL Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

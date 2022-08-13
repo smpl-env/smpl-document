@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BeerFMTEnv &mdash; smpl latest documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="MAbEnv" href="mabenv.html" />
+    <link rel="prev" title="PenSimEnv" href="pensimenv.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> smpl
+          </a>
+              <div class="version">
+                latest
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="reactorenv.html">ReactorEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="atropineenv.html">AtropineEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pensimenv.html">PenSimEnv</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">BeerFMTEnv</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#beerfmtenv-module">BeerFMTEnv module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="mabenv.html">MAbEnv</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/smpl.envs.html">smpl.envs package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">smpl</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>BeerFMTEnv</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/beerfmtenv.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<section id="beerfmtenv">
+<h1>BeerFMTEnv<a class="headerlink" href="#beerfmtenv" title="Permalink to this headline"></a></h1>
+<p>Beer is one of the oldest and most widely consumed alcoholic drinks in the world, and we have a lot of ways to produce them. This class provides a typical (and simple enough) simulation of the industry-level beer fermentation process. The only input that the simulation takes is the reaction temperature. The end goal in this simulation is to reach the stop condition (finish production) with a certain time limit, the quicker the better.</p>
+<p>To better assist any control algorithms, we also provided a canonical production process under this simulation. Please consult the ‘profile_industrial’ in the BeerFMT section <a class="reference external" href="https://github.com/smpl-env/smpl/blob/main/examples.ipynb">here</a> for more details.</p>
+<section id="beerfmtenv-module">
+<h2>BeerFMTEnv module<a class="headerlink" href="#beerfmtenv-module" title="Permalink to this headline"></a></h2>
+<p>Following the discription above, we provide APIs as below:</p>
+<p>BeerFMT simulates the Beer Fermentation process.</p>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">smpl.envs.beerfmtenv.</span></span><span class="sig-name descname"><span class="pre">BeerFMTEnvGym</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">dense_reward=True,</span> <span class="pre">normalize=True,</span> <span class="pre">debug_mode=False,</span> <span class="pre">action_dim=1,</span> <span class="pre">observation_dim=8,</span> <span class="pre">reward_function=None,</span> <span class="pre">done_calculator=None,</span> <span class="pre">max_observations=[15,</span> <span class="pre">15,</span> <span class="pre">15,</span> <span class="pre">150,</span> <span class="pre">150,</span> <span class="pre">10,</span> <span class="pre">10,</span> <span class="pre">200],</span> <span class="pre">min_observations=[0,</span> <span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">0,</span> <span class="pre">0],</span> <span class="pre">max_actions=[16.0],</span> <span class="pre">min_actions=[9.0],</span> <span class="pre">observation_name=['X_A',</span> <span class="pre">'X_L',</span> <span class="pre">'X_D',</span> <span class="pre">'S',</span> <span class="pre">'EtOH',</span> <span class="pre">'DY',</span> <span class="pre">'EA',</span> <span class="pre">'time'],</span> <span class="pre">action_name=['temperature'],</span> <span class="pre">np_dtype=&lt;class</span> <span class="pre">'numpy.float32'&gt;,</span> <span class="pre">max_steps=200,</span> <span class="pre">error_reward=-200.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/beerfmtenv.html#BeerFMTEnvGym"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference internal" href="api/smpl.envs.html#smpl.envs.utils.smplEnvBase" title="smpl.envs.utils.smplEnvBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">smpl.envs.utils.smplEnvBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">done_calculator_standard</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_observation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_count</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reward</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">update_prev_biomass</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">done</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">done_info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/beerfmtenv.html#BeerFMTEnvGym.done_calculator_standard"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><dl class="simple">
+<dt>check whether the current episode is considered finished.</dt><dd><p>returns a boolean value indicated done or not, and a dictionary with information.
+here in done_calculator_standard, done_info looks like {“terminal”: boolean, “timeout”: boolean},
+where “timeout” is true when episode end due to reaching the maximum episode length,
+“terminal” is true when “timeout” or episode end due to termination conditions such as env error encountered. (basically done)</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>current_observation</strong> (<em>[</em><em>np.ndarray</em><em>]</em>) – This is denormalized observation, as usual.</p></li>
+<li><p><strong>step_count</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>]</em>) – step_count.</p></li>
+<li><p><strong>reward</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em>]</em>) – reward.</p></li>
+<li><p><strong>done</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a><em>]</em><em>, </em><em>optional</em>) – Defaults to None.</p></li>
+<li><p><strong>done_info</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)"><em>dict</em></a><em>]</em><em>, </em><em>optional</em>) – how the environment is finished. Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>done and done_info.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>[(<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)">float</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)">dict</a>)]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">initial_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/beerfmtenv.html#BeerFMTEnvGym.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>required by gym.
+This function resets the environment and returns an initial observation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">reward_function_standard</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">previous_observation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_observation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/beerfmtenv.html#BeerFMTEnvGym.reward_function_standard"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>the s, a, r, s, a calculation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>previous_observation</strong> (<em>[</em><em>np.ndarray</em><em>]</em>) – This is denormalized observation, as usual.</p></li>
+<li><p><strong>action</strong> (<em>[</em><em>np.ndarray</em><em>]</em>) – This is denormalized action, as usual.</p></li>
+<li><p><strong>current_observation</strong> (<em>[</em><em>np.ndarray</em><em>]</em>) – This is denormalized observation, as usual.</p></li>
+<li><p><strong>reward</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em>]</em>) – If reward is provided, directly return the reward.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>reward.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)">float</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">sample_initial_state</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/beerfmtenv.html#BeerFMTEnvGym.sample_initial_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/beerfmtenv.html#BeerFMTEnvGym.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>required by gym.
+This function performs one step within the environment and returns the observation, the reward, whether the episode is finished and debug information, if any.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">smpl.envs.beerfmtenv.</span></span><span class="sig-name descname"><span class="pre">beer_ode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">points</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sets</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/beerfmtenv.html#beer_ode"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Beer fermentation process</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="pensimenv.html" class="btn btn-neutral float-left" title="PenSimEnv" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="mabenv.html" class="btn btn-neutral float-right" title="MAbEnv" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, SMPL Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

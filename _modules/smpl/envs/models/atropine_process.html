@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>smpl.envs.models.atropine_process &mdash; smpl latest documentation</title>
+      <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../../index.html" class="icon icon-home"> smpl
+          </a>
+              <div class="version">
+                latest
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../reactorenv.html">ReactorEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../atropineenv.html">AtropineEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../pensimenv.html">PenSimEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../beerfmtenv.html">BeerFMTEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../mabenv.html">MAbEnv</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/smpl.envs.html">smpl.envs package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">smpl</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+      <li>smpl.envs.models.atropine_process</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for smpl.envs.models.atropine_process</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">casadi</span> <span class="kn">import</span> <span class="n">reshape</span><span class="p">,</span> <span class="n">vertcat</span><span class="p">,</span> <span class="n">SX</span><span class="p">,</span> <span class="n">integrator</span><span class="p">,</span> <span class="n">mtimes</span><span class="p">,</span> <span class="n">inf</span><span class="p">,</span> <span class="n">nlpsol</span>
+
+<span class="kn">from</span> <span class="nn">..helpers.constants</span> <span class="kn">import</span> <span class="n">NUM_COMPONENTS</span><span class="p">,</span> <span class="n">MASS_DENSITIES</span><span class="p">,</span> <span class="n">MOLECULAR_WEIGHT</span><span class="p">,</span> <span class="n">EPS</span><span class="p">,</span> <span class="n">REACTION_STOICHIOMETRY</span><span class="p">,</span> \
+    <span class="n">RATE_CONSTANTS</span><span class="p">,</span> <span class="n">ACTIVATION_ENERGIES</span><span class="p">,</span> <span class="n">GAS_CONSTANT</span><span class="p">,</span> <span class="n">SEPARATION_PARTITION_COEFFICIENTS</span>
+
+
+<div class="viewcode-block" id="Stream"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.Stream">[docs]</a><span class="k">class</span> <span class="nc">Stream</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_volumetric_flowrate</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># [L/min]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_mass_flowrate</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># [g/min]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">temperature</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># [K]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">component_mass_flowrate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">NUM_COMPONENTS</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>  <span class="c1"># [g/min]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">component_volumetric_flowrate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">NUM_COMPONENTS</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>  <span class="c1"># [L/min]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">component_molar_concentration</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">NUM_COMPONENTS</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>  <span class="c1"># [mol/L]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">component_mass_concentration</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">NUM_COMPONENTS</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>  <span class="c1"># [g/L]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">component_mass_fraction</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">NUM_COMPONENTS</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>  <span class="c1"># [dimensionless]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">average_mass_density</span> <span class="o">=</span> <span class="mf">0.0</span>  <span class="c1"># [g/L]</span>
+
+<div class="viewcode-block" id="Stream.component_volumetric_flowrate_to_component_mass_flowrate"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.Stream.component_volumetric_flowrate_to_component_mass_flowrate">[docs]</a>    <span class="k">def</span> <span class="nf">component_volumetric_flowrate_to_component_mass_flowrate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">component_mass_flowrate</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">component_volumetric_flowrate</span> <span class="o">*</span> <span class="n">MASS_DENSITIES</span><span class="p">)[:]</span>  <span class="c1"># [g/min]</span></div>
+
+<div class="viewcode-block" id="Stream.evaluate_total_volumetric_flowrate"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.Stream.evaluate_total_volumetric_flowrate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_total_volumetric_flowrate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_volumetric_flowrate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_mass_flowrate</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">average_mass_density</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">)</span>  <span class="c1"># [L/min]</span></div>
+
+<div class="viewcode-block" id="Stream.evaluate_average_mass_density"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.Stream.evaluate_average_mass_density">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_average_mass_density</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">average_mass_density</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">component_mass_fraction</span> <span class="o">/</span> <span class="n">MASS_DENSITIES</span><span class="p">)</span>  <span class="c1"># [g/L]</span></div>
+
+<div class="viewcode-block" id="Stream.evaluate_total_mass_flowrate"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.Stream.evaluate_total_mass_flowrate">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_total_mass_flowrate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_mass_flowrate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">component_mass_flowrate</span><span class="p">)</span>  <span class="c1"># [g/min]</span></div>
+
+<div class="viewcode-block" id="Stream.evaluate_component_molar_concentration"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.Stream.evaluate_component_molar_concentration">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_component_molar_concentration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">component_molar_concentration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">component_mass_fraction</span> \
+                                             <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">average_mass_density</span> \
+                                             <span class="o">/</span> <span class="n">MOLECULAR_WEIGHT</span>  <span class="c1"># [mol/L]</span></div>
+
+<div class="viewcode-block" id="Stream.component_molar_concentration_to_component_mass_concentration"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.Stream.component_molar_concentration_to_component_mass_concentration">[docs]</a>    <span class="k">def</span> <span class="nf">component_molar_concentration_to_component_mass_concentration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">component_mass_concentration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">component_molar_concentration</span> <span class="o">*</span> <span class="n">MOLECULAR_WEIGHT</span>  <span class="c1"># [g/L]</span></div>
+
+<div class="viewcode-block" id="Stream.component_mass_concentration_to_component_mass_flowrate"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.Stream.component_mass_concentration_to_component_mass_flowrate">[docs]</a>    <span class="k">def</span> <span class="nf">component_mass_concentration_to_component_mass_flowrate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">component_mass_flowrate</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">component_mass_concentration</span> <span class="o">*</span>
+                                        <span class="bp">self</span><span class="o">.</span><span class="n">total_volumetric_flowrate</span><span class="p">)[:]</span>  <span class="c1"># [g/min]</span></div>
+
+<div class="viewcode-block" id="Stream.evaluate_component_mass_fraction"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.Stream.evaluate_component_mass_fraction">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_component_mass_fraction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">component_mass_fraction</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">component_mass_flowrate</span> <span class="o">/</span> <span class="p">(</span>
+                <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">component_mass_flowrate</span><span class="p">)</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">)</span>  <span class="c1"># [dimensionless]</span></div>
+
+<div class="viewcode-block" id="Stream.total_volumetric_flowrate_to_total_mass_flowrate"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.Stream.total_volumetric_flowrate_to_total_mass_flowrate">[docs]</a>    <span class="k">def</span> <span class="nf">total_volumetric_flowrate_to_total_mass_flowrate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_mass_flowrate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">average_mass_density</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_volumetric_flowrate</span>  <span class="c1"># [g/min]</span></div>
+
+<div class="viewcode-block" id="Stream.total_mass_flowrate_to_component_mass_flowrate"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.Stream.total_mass_flowrate_to_component_mass_flowrate">[docs]</a>    <span class="k">def</span> <span class="nf">total_mass_flowrate_to_component_mass_flowrate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">component_mass_flowrate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">component_mass_fraction</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_mass_flowrate</span>  <span class="c1"># [g/min]</span></div>
+
+<div class="viewcode-block" id="Stream.print_stream"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.Stream.print_stream">[docs]</a>    <span class="k">def</span> <span class="nf">print_stream</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Total volumetric flowrate: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">total_volumetric_flowrate</span><span class="si">}</span><span class="s1"> mL/min&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Total mass flowrate: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">total_mass_flowrate</span><span class="si">}</span><span class="s1"> g/min&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Component mass flowrate: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">component_mass_flowrate</span><span class="si">}</span><span class="s1"> g/min&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Component volumetric flowrate: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">component_volumetric_flowrate</span><span class="si">}</span><span class="s1"> g/min&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Component molar concentration: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">component_molar_concentration</span><span class="si">}</span><span class="s1"> mol/mL&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Component mass concentration: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">component_mass_concentration</span><span class="si">}</span><span class="s1"> g/mL&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Component mass fraction: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">component_mass_fraction</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Average mass density: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">average_mass_density</span><span class="si">}</span><span class="s1"> g/mL&#39;</span><span class="p">)</span></div></div>
+
+
+<span class="c1"># mixer model</span>
+<div class="viewcode-block" id="Mixer"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.Mixer">[docs]</a><span class="k">class</span> <span class="nc">Mixer</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">ID</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+            <span class="n">num_inputs</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="n">ID</span>  <span class="c1"># equipment ID. May be used for diagnostics. Currently not in use</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_inputs</span> <span class="o">=</span> <span class="n">num_inputs</span>  <span class="c1"># number of inputs to the mixer</span>
+
+        <span class="c1"># initialize streams</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="p">[</span><span class="n">Stream</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_inputs</span><span class="p">)]</span>  <span class="c1"># input streams</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">Stream</span><span class="p">()</span>  <span class="c1"># single output stream</span>
+
+<div class="viewcode-block" id="Mixer.mix_streams_mass"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.Mixer.mix_streams_mass">[docs]</a>    <span class="k">def</span> <span class="nf">mix_streams_mass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">component_mass_flowrate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">NUM_COMPONENTS</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>  <span class="c1"># []</span>
+        <span class="c1"># add the streams</span>
+        <span class="k">for</span> <span class="n">stream</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">:</span>
+            <span class="n">component_mass_flowrate</span> <span class="o">+=</span> <span class="n">stream</span><span class="o">.</span><span class="n">component_mass_flowrate</span>  <span class="c1"># []</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">total_mass_flowrate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">component_mass_flowrate</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">component_mass_flowrate</span> <span class="o">=</span> <span class="n">component_mass_flowrate</span><span class="p">[:]</span></div></div>
+
+
+<span class="c1"># tubular reactor model</span>
+<div class="viewcode-block" id="TubularReactor"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.TubularReactor">[docs]</a><span class="k">class</span> <span class="nc">TubularReactor</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">ID</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+            <span class="n">volume</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">,</span>
+            <span class="n">num_discretization_points</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;diameter in mm&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="n">ID</span>  <span class="c1"># equipment ID. May be used for diagnostics. Currently not in use</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_discretization_points</span> <span class="o">=</span> <span class="n">num_discretization_points</span>  <span class="c1"># [dimensionless]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">volume</span> <span class="o">=</span> <span class="n">volume</span>  <span class="c1"># [L]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">volume_per_section</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume</span> <span class="o">/</span> <span class="n">num_discretization_points</span>  <span class="c1"># [L]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">Stream</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="n">Stream</span><span class="p">()</span>
+
+    <span class="c1"># xdot for the reactor</span>
+<div class="viewcode-block" id="TubularReactor.get_derivative"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.TubularReactor.get_derivative">[docs]</a>    <span class="k">def</span> <span class="nf">get_derivative</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+        <span class="c1"># x = states</span>
+        <span class="c1"># u = inputs</span>
+        <span class="c1"># d = disturbances [currently unused]</span>
+
+        <span class="c1"># reshape array. currently using casadi reshape</span>
+        <span class="c1"># function since the numpy reshape does not work for casadi variables</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">NUM_COMPONENTS</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_discretization_points</span><span class="p">))</span>
+        <span class="c1"># create holder for state velocities. object datatype to allow for casadi variables</span>
+        <span class="n">xdot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">NUM_COMPONENTS</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_discretization_points</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)</span>
+
+        <span class="n">T</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># reactor temperature</span>
+        <span class="n">Qtot</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># total volumetric flow rate [L/min]</span>
+
+        <span class="c1"># start at 2nd discrete point because xdot[:,0] = 0</span>
+        <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_discretization_points</span><span class="p">):</span>
+            <span class="c1"># Eq. (7)</span>
+            <span class="n">R1</span> <span class="o">=</span> <span class="n">RATE_CONSTANTS</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> \
+                 <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">ACTIVATION_ENERGIES</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">GAS_CONSTANT</span> <span class="o">*</span> <span class="n">T</span><span class="p">))</span> \
+                 <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> \
+                 <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span>  <span class="c1"># [mol/L/min]</span>
+            <span class="n">R2</span> <span class="o">=</span> <span class="n">RATE_CONSTANTS</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> \
+                 <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">ACTIVATION_ENERGIES</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">GAS_CONSTANT</span> <span class="o">*</span> <span class="n">T</span><span class="p">))</span> \
+                 <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> \
+                 <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span>  <span class="c1"># [mol/L/min]</span>
+            <span class="n">R3</span> <span class="o">=</span> <span class="n">RATE_CONSTANTS</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> \
+                 <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">ACTIVATION_ENERGIES</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">GAS_CONSTANT</span> <span class="o">*</span> <span class="n">T</span><span class="p">))</span> \
+                 <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> \
+                 <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span>  <span class="c1"># [mol/L/min]</span>
+            <span class="n">R4</span> <span class="o">=</span> <span class="n">RATE_CONSTANTS</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> \
+                 <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">ACTIVATION_ENERGIES</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">GAS_CONSTANT</span> <span class="o">*</span> <span class="n">T</span><span class="p">))</span> \
+                 <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> \
+                 <span class="o">*</span> <span class="n">x</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span>  <span class="c1"># [mol/L/min]</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">NUM_COMPONENTS</span><span class="p">):</span>
+                <span class="c1"># Eq. (4) and the reaction rate matrix r = S*R</span>
+                <span class="n">xdot</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">Qtot</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume_per_section</span><span class="p">)</span> \
+                             <span class="o">*</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">l</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">l</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span> \
+                             <span class="o">+</span> <span class="p">(</span><span class="n">REACTION_STOICHIOMETRY</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">R1</span><span class="p">)</span> \
+                             <span class="o">+</span> <span class="p">(</span><span class="n">REACTION_STOICHIOMETRY</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">R2</span><span class="p">)</span> \
+                             <span class="o">+</span> <span class="p">(</span><span class="n">REACTION_STOICHIOMETRY</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">R3</span><span class="p">)</span> \
+                             <span class="o">+</span> <span class="p">(</span><span class="n">REACTION_STOICHIOMETRY</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span> <span class="o">*</span> <span class="n">R4</span><span class="p">)</span>  <span class="c1"># [mol/L/min]</span>
+
+        <span class="c1"># reshape arrays to a vector</span>
+        <span class="n">xdot</span> <span class="o">=</span> <span class="n">reshape</span><span class="p">(</span><span class="n">xdot</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_discretization_points</span> <span class="o">*</span> <span class="n">NUM_COMPONENTS</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">xdot</span></div></div>
+
+
+<span class="c1"># liquid-liquid separator model</span>
+<div class="viewcode-block" id="LLSeparator"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.LLSeparator">[docs]</a><span class="k">class</span> <span class="nc">LLSeparator</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">ID</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+            <span class="n">volume</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="n">ID</span>  <span class="c1"># ID of unit. currently used</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">volume</span> <span class="o">=</span> <span class="n">volume</span>  <span class="c1"># volume of L-L-separator [L]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">Stream</span><span class="p">()</span>  <span class="c1"># one inlet</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="p">[</span><span class="n">Stream</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">)]</span>  <span class="c1"># two outlets</span>
+
+    <span class="c1"># calculate the derivatives</span>
+<div class="viewcode-block" id="LLSeparator.get_derivative"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.LLSeparator.get_derivative">[docs]</a>    <span class="k">def</span> <span class="nf">get_derivative</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+        <span class="c1"># x = states</span>
+        <span class="c1"># u = internal inputs</span>
+        <span class="c1"># d = disturbances [currently unused]</span>
+
+        <span class="n">Qtot</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># total volumetric flowrate</span>
+        <span class="n">c_in</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">15</span><span class="p">]</span>  <span class="c1"># inlet concentration of the components from reactor 3</span>
+
+        <span class="c1"># Eq. (10)</span>
+        <span class="n">xdot</span> <span class="o">=</span> <span class="p">(</span><span class="n">Qtot</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">c_in</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span>  <span class="c1"># [mol/L]</span>
+        <span class="k">return</span> <span class="n">xdot</span></div>
+
+<div class="viewcode-block" id="LLSeparator.get_algebraic"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.LLSeparator.get_algebraic">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_algebraic</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">d</span><span class="p">):</span>
+        <span class="c1"># x = states</span>
+        <span class="c1"># u = internal inputs</span>
+        <span class="c1"># d = disturbances [currently unused]</span>
+
+        <span class="n">Qtot</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">x_m</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="mi">15</span><span class="p">:]</span>  <span class="c1"># mass fraction of components in inlet stream</span>
+        <span class="n">ci_avg</span> <span class="o">=</span> <span class="n">x</span>
+
+        <span class="n">F_OR</span> <span class="o">=</span> <span class="n">z</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span> <span class="n">NUM_COMPONENTS</span><span class="p">]</span>  <span class="c1"># molar flow rate of organic phase. i.e. waste stream   [mol/min]</span>
+        <span class="n">F_AQ</span> <span class="o">=</span> <span class="n">z</span><span class="p">[</span><span class="n">NUM_COMPONENTS</span><span class="p">:</span> <span class="n">NUM_COMPONENTS</span> <span class="o">*</span> <span class="mi">2</span><span class="p">]</span>  <span class="c1"># molar flow rate of acqueous phase i.e. product stream [mol/min]</span>
+        <span class="n">Q_OR</span> <span class="o">=</span> <span class="n">z</span><span class="p">[</span><span class="n">NUM_COMPONENTS</span> <span class="o">*</span> <span class="mi">2</span><span class="p">]</span>  <span class="c1"># volumetric flow rate of organic phase [L/min]</span>
+        <span class="n">Q_AQ</span> <span class="o">=</span> <span class="n">z</span><span class="p">[</span><span class="n">NUM_COMPONENTS</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>  <span class="c1"># volumetric flow rate of acqueous phase [L/min]</span>
+
+        <span class="c1"># calculate algebraic equation residuals</span>
+
+        <span class="c1"># Eq. (9)</span>
+        <span class="n">res1</span> <span class="o">=</span> <span class="n">F_OR</span> <span class="o">+</span> <span class="n">F_AQ</span> <span class="o">-</span> <span class="n">Qtot</span> <span class="o">*</span> <span class="n">ci_avg</span>
+        <span class="c1"># Eq. (11)</span>
+        <span class="n">res2</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_m</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">x_m</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span> <span class="o">+</span> <span class="n">x_m</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">+</span> <span class="n">EPS</span><span class="p">))</span> <span class="o">*</span> <span class="n">Qtot</span> <span class="o">-</span> <span class="n">Q_OR</span>
+        <span class="c1"># Eq. (13)</span>
+        <span class="n">res3</span> <span class="o">=</span> <span class="n">Q_OR</span> <span class="o">*</span> <span class="n">SEPARATION_PARTITION_COEFFICIENTS</span> <span class="o">*</span> <span class="n">F_AQ</span> <span class="o">-</span> <span class="n">Q_AQ</span> <span class="o">*</span> <span class="n">F_OR</span>
+        <span class="n">res4</span> <span class="o">=</span> <span class="n">Q_OR</span> <span class="o">+</span> <span class="n">Q_AQ</span> <span class="o">-</span> <span class="n">Qtot</span>
+
+        <span class="k">return</span> <span class="n">vertcat</span><span class="p">(</span><span class="n">res1</span><span class="p">,</span> <span class="n">res2</span><span class="p">,</span> <span class="n">res3</span><span class="p">,</span> <span class="n">res4</span><span class="p">)</span>  <span class="c1"># merge the residuals. use np.concatenate when not using casadi</span></div></div>
+
+
+<span class="c1"># overall plant model</span>
+<div class="viewcode-block" id="Plant"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.Plant">[docs]</a><span class="k">class</span> <span class="nc">Plant</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ND1</span><span class="p">,</span> <span class="n">ND2</span><span class="p">,</span> <span class="n">ND3</span><span class="p">,</span> <span class="n">V1</span><span class="p">,</span> <span class="n">V2</span><span class="p">,</span> <span class="n">V3</span><span class="p">,</span> <span class="n">V4</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+        <span class="c1"># ND1 = number of spatial discretization points for reactor 1</span>
+        <span class="c1"># ND2 = number of spatial discretization points for reactor 2</span>
+        <span class="c1"># ND3 = number of spatial discretization points for reactor 3</span>
+        <span class="c1"># V1 = volume of reactor 1</span>
+        <span class="c1"># V2 = volume of reactor 2</span>
+        <span class="c1"># V3 = volume of reactor 3</span>
+        <span class="c1"># V4 = volume of liquid-liquid separator</span>
+        <span class="c1"># dt = sampling time</span>
+
+        <span class="c1"># six external input streams and 2 external output streams</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="p">[</span><span class="n">Stream</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">6</span><span class="p">)]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output</span> <span class="o">=</span> <span class="p">[</span><span class="n">Stream</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">)]</span>
+
+        <span class="c1"># ::: ::: Mixer: 1. has two inlets</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer1</span> <span class="o">=</span> <span class="n">Mixer</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="c1"># connect S1 &amp; S2 to Mixer 1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer1</span><span class="o">.</span><span class="n">input</span><span class="p">[:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+
+        <span class="c1"># ::: ::: Tubular reactor: 1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactor1</span> <span class="o">=</span> <span class="n">TubularReactor</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">V1</span><span class="p">,</span> <span class="n">ND1</span><span class="p">)</span>
+        <span class="c1"># connect outlet of mixer 1 to inlet of reactor 1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactor1</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer1</span><span class="o">.</span><span class="n">output</span>
+
+        <span class="c1"># ::: ::: Mixer: 2. has 3 inlets</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span> <span class="o">=</span> <span class="n">Mixer</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="c1"># connect S3 &amp; S4 to mixer inlets</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>
+        <span class="c1"># connect outlet from reactor 1 to the 3rd inlet of mixer 2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor1</span><span class="o">.</span><span class="n">output</span>
+
+        <span class="c1"># ::: ::: Tubular reactor: 2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactor2</span> <span class="o">=</span> <span class="n">TubularReactor</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">V2</span><span class="p">,</span> <span class="n">ND2</span><span class="p">)</span>
+        <span class="c1"># connect outlet of mixer 2 to inlet of reactor 2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactor2</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">output</span>
+
+        <span class="c1"># ::: ::: Mixer: 3. has 3 inlets</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer3</span> <span class="o">=</span> <span class="n">Mixer</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="c1"># connect S5 &amp; S6 to the inlets of mixer 3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer3</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">4</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span>
+        <span class="c1"># connect the outlet of reactor 2 to the inlet of mixer 3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer3</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor2</span><span class="o">.</span><span class="n">output</span>
+
+        <span class="c1"># ::: ::: Tubular reactor: 3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactor3</span> <span class="o">=</span> <span class="n">TubularReactor</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="n">V3</span><span class="p">,</span> <span class="n">ND3</span><span class="p">)</span>
+        <span class="c1"># connect the outlet of mixer 3 to the inlet of reactor 3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactor3</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer3</span><span class="o">.</span><span class="n">output</span>
+
+        <span class="c1"># ::: ::: Liquid-Liquid separator: 1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">llseparator</span> <span class="o">=</span> <span class="n">LLSeparator</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="n">V4</span><span class="p">)</span>
+        <span class="c1"># connect outlet of reactor 3 to inlet of llseparator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">llseparator</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor3</span><span class="o">.</span><span class="n">output</span>
+        <span class="c1"># connect the outlets of the llseparator to the two outlets of the overall process</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">llseparator</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+
+        <span class="c1"># define sizes of variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Nx</span> <span class="o">=</span> <span class="n">NUM_COMPONENTS</span> <span class="o">*</span> <span class="p">(</span><span class="n">ND1</span> <span class="o">+</span> <span class="n">ND2</span> <span class="o">+</span> <span class="n">ND3</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># state variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Nz</span> <span class="o">=</span> <span class="mi">30</span>  <span class="c1"># algebraic variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Nu</span> <span class="o">=</span> <span class="mi">32</span>  <span class="c1"># internal inputs</span>
+
+        <span class="c1"># create casadi symbolic variables</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">SX</span><span class="o">.</span><span class="n">sym</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Nx</span><span class="p">)</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">SX</span><span class="o">.</span><span class="n">sym</span><span class="p">(</span><span class="s1">&#39;u&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Nu</span><span class="p">)</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">SX</span><span class="o">.</span><span class="n">sym</span><span class="p">(</span><span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Nz</span><span class="p">)</span>
+
+        <span class="c1"># create integrator</span>
+        <span class="n">opts</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;tf&quot;</span><span class="p">:</span> <span class="n">dt</span><span class="p">,</span> <span class="s2">&quot;abstol&quot;</span><span class="p">:</span> <span class="mf">1E-10</span><span class="p">}</span>  <span class="c1"># interval length</span>
+        <span class="c1"># dictionary for the integrator</span>
+        <span class="n">dae</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">:</span> <span class="n">z</span><span class="p">,</span> <span class="s1">&#39;p&#39;</span><span class="p">:</span> <span class="n">u</span><span class="p">,</span>
+               <span class="s1">&#39;ode&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_derivative</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">u</span><span class="p">),</span>
+               <span class="s1">&#39;alg&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_algebraic</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">u</span><span class="p">)}</span>
+        <span class="c1"># create the dae integrator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">F</span> <span class="o">=</span> <span class="n">integrator</span><span class="p">(</span><span class="s1">&#39;F&#39;</span><span class="p">,</span> <span class="s1">&#39;idas&#39;</span><span class="p">,</span> <span class="n">dae</span><span class="p">,</span> <span class="n">opts</span><span class="p">)</span>
+
+    <span class="c1"># this calculates the environmental factor. all components are considered harmless except</span>
+    <span class="c1"># water and atropine in product stream</span>
+<div class="viewcode-block" id="Plant.calculate_Efactor"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.Plant.calculate_Efactor">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">calculate_Efactor</span><span class="p">(</span><span class="n">z</span><span class="p">):</span>
+        <span class="c1"># z = algebraic states</span>
+
+        <span class="c1"># component mass flow rate of organic stream</span>
+        <span class="n">F_mass_OR</span> <span class="o">=</span> <span class="n">z</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span> <span class="n">NUM_COMPONENTS</span><span class="p">]</span> <span class="o">*</span> <span class="n">MOLECULAR_WEIGHT</span>
+        <span class="c1"># component mass flow rate of aqueous stream</span>
+        <span class="n">F_mass_AQ</span> <span class="o">=</span> <span class="n">z</span><span class="p">[</span><span class="n">NUM_COMPONENTS</span><span class="p">:</span> <span class="n">NUM_COMPONENTS</span> <span class="o">*</span> <span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="n">MOLECULAR_WEIGHT</span>
+
+        <span class="c1"># calculate E-factor</span>
+        <span class="n">Efactor</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">F_mass_OR</span><span class="p">,</span> <span class="p">[</span><span class="mi">7</span><span class="p">]))</span>
+                   <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">F_mass_AQ</span><span class="p">,</span> <span class="p">[</span><span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">])))</span> \
+                  <span class="o">/</span> <span class="n">F_mass_AQ</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">Efactor</span><span class="o">.</span><span class="n">full</span><span class="p">()</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span></div>
+
+    <span class="c1"># this function simulates one time step.</span>
+<div class="viewcode-block" id="Plant.simulate"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.Plant.simulate">[docs]</a>    <span class="k">def</span> <span class="nf">simulate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">u</span><span class="p">):</span>
+        <span class="c1"># x = the state of the plant</span>
+        <span class="c1"># z = an initial guess of the algebraic state for the algebraic equation solver.</span>
+        <span class="c1"># a good guess results in faster computation</span>
+        <span class="c1"># u = the external inputs i.e. volumetric flow rates for streams 1--4</span>
+
+        <span class="c1"># update the inlet concentrations of the reactors with the outlets from the mixers</span>
+        <span class="c1"># and return the updated states as well as all the internal inputs</span>
+        <span class="n">x_system</span><span class="p">,</span> <span class="n">u_system</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mix_and_get_initial_condition</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>
+        <span class="c1"># compute the states at the next time step</span>
+        <span class="n">x_next</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">F</span><span class="p">(</span><span class="n">x0</span><span class="o">=</span><span class="n">x_system</span><span class="p">,</span> <span class="n">z0</span><span class="o">=</span><span class="n">z</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">u_system</span><span class="p">)</span>
+        <span class="c1"># return the updated initial system state, next system state and the algebraic states</span>
+        <span class="k">return</span> <span class="n">x_system</span><span class="p">,</span> <span class="n">x_next</span><span class="p">[</span><span class="s2">&quot;xf&quot;</span><span class="p">],</span> <span class="n">x_next</span><span class="p">[</span><span class="s2">&quot;zf&quot;</span><span class="p">]</span></div>
+
+    <span class="c1"># compute the mixer equations and update the initial state concentration of the reactors</span>
+    <span class="c1"># with the outlets of the mixers</span>
+
+<div class="viewcode-block" id="Plant.mix_and_get_initial_condition"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.Plant.mix_and_get_initial_condition">[docs]</a>    <span class="k">def</span> <span class="nf">mix_and_get_initial_condition</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">):</span>
+        <span class="n">ND1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor1</span><span class="o">.</span><span class="n">num_discretization_points</span>
+        <span class="n">ND2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor2</span><span class="o">.</span><span class="n">num_discretization_points</span>
+        <span class="n">ND3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor3</span><span class="o">.</span><span class="n">num_discretization_points</span>
+
+        <span class="c1"># mixer 1</span>
+        <span class="c1"># stream 1: 2M TROPINE in DMF</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer1</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">component_mass_fraction</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.293</span>  <span class="c1"># approximate mass fraction of 2M Tropine in DMF</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer1</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">component_mass_fraction</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.707</span>  <span class="c1"># approximate mass fraction of 2M Tropine in DMF</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer1</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">evaluate_average_mass_density</span><span class="p">()</span>  <span class="c1"># approximate average mass density of 2M Tropine in DMF</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer1</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">total_volumetric_flowrate</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mf">1000.0</span>  <span class="c1"># set total volumetric flowrate of tropine</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer1</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">total_volumetric_flowrate_to_total_mass_flowrate</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer1</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">total_mass_flowrate_to_component_mass_flowrate</span><span class="p">()</span>
+        <span class="c1"># stream 2: PHENYLACETYLCHLORIDE (pure or neat)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer1</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">component_volumetric_flowrate</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="mf">1000.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer1</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">component_volumetric_flowrate_to_component_mass_flowrate</span><span class="p">()</span>
+        <span class="c1"># mix streams</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer1</span><span class="o">.</span><span class="n">mix_streams_mass</span><span class="p">()</span>
+        <span class="c1"># auxilliary calculations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer1</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">evaluate_component_mass_fraction</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer1</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">evaluate_average_mass_density</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer1</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">evaluate_total_volumetric_flowrate</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer1</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">evaluate_component_molar_concentration</span><span class="p">()</span>
+
+        <span class="c1"># select the states for reactor 1</span>
+        <span class="n">x_reactor1</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span> <span class="n">NUM_COMPONENTS</span> <span class="o">*</span> <span class="n">ND1</span><span class="p">]</span>
+        <span class="c1"># reshape the states into a 2D array. casadi reshape function is used for consistency</span>
+        <span class="n">x_reactor1</span> <span class="o">=</span> <span class="n">reshape</span><span class="p">(</span><span class="n">x_reactor1</span><span class="p">,</span> <span class="p">(</span><span class="n">NUM_COMPONENTS</span><span class="p">,</span> <span class="n">ND1</span><span class="p">))</span>
+        <span class="c1"># inlet dirichlet boundary condition</span>
+        <span class="n">x_reactor1</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor1</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">component_molar_concentration</span><span class="p">[:]</span>
+        <span class="c1"># set the outlet concentration of reactor 1 to the last state concentrations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactor1</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">component_molar_concentration</span> <span class="o">=</span> <span class="n">x_reactor1</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="c1"># set reactor1 input (internal) to the total volumetric flow rate of Mixer 1</span>
+        <span class="n">u_reactor1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer1</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">total_volumetric_flowrate</span>
+        <span class="c1"># reshape back to vector</span>
+        <span class="n">x_reactor1</span> <span class="o">=</span> <span class="n">reshape</span><span class="p">(</span><span class="n">x_reactor1</span><span class="p">,</span> <span class="p">(</span><span class="n">ND1</span> <span class="o">*</span> <span class="n">NUM_COMPONENTS</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="c1"># assumption of constant total volumetric flowrate in the axial direction</span>
+        <span class="c1"># =&gt; total volumetric flow rate does not change inside the reactor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactor1</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">total_volumetric_flowrate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor1</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">total_volumetric_flowrate</span>
+
+        <span class="c1"># mixer 2</span>
+        <span class="c1"># from reactor 1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">component_molar_concentration_to_component_mass_concentration</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">component_mass_concentration_to_component_mass_flowrate</span><span class="p">()</span>
+        <span class="c1"># stream 3:37 wt% FOMALDEHYDE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">component_mass_fraction</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.37</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">component_mass_fraction</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.63</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">evaluate_average_mass_density</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">total_volumetric_flowrate</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">/</span> <span class="mf">1000.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">total_volumetric_flowrate_to_total_mass_flowrate</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">total_mass_flowrate_to_component_mass_flowrate</span><span class="p">()</span>
+        <span class="c1"># stream 4: 4M NaOH solution</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">component_mass_fraction</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.138</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">component_mass_fraction</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.862</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">evaluate_average_mass_density</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">total_volumetric_flowrate</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">/</span> <span class="mf">1000.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">total_volumetric_flowrate_to_total_mass_flowrate</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">total_mass_flowrate_to_component_mass_flowrate</span><span class="p">()</span>
+        <span class="c1"># mix the three streams</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">mix_streams_mass</span><span class="p">()</span>
+        <span class="c1"># auxilliary calculations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">evaluate_component_mass_fraction</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">evaluate_average_mass_density</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">evaluate_total_volumetric_flowrate</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">evaluate_component_molar_concentration</span><span class="p">()</span>
+
+        <span class="c1"># reactor 2</span>
+        <span class="n">x_reactor2</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">NUM_COMPONENTS</span> <span class="o">*</span> <span class="n">ND1</span><span class="p">:</span> <span class="n">NUM_COMPONENTS</span> <span class="o">*</span> <span class="p">(</span><span class="n">ND1</span> <span class="o">+</span> <span class="n">ND2</span><span class="p">)]</span>
+        <span class="n">x_reactor2</span> <span class="o">=</span> <span class="n">reshape</span><span class="p">(</span><span class="n">x_reactor2</span><span class="p">,</span> <span class="p">(</span><span class="n">NUM_COMPONENTS</span><span class="p">,</span> <span class="n">ND2</span><span class="p">))</span>  <span class="c1"># reshape</span>
+        <span class="c1"># inlet dirichlet boundary condition</span>
+        <span class="n">x_reactor2</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor2</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">component_molar_concentration</span><span class="p">[:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactor2</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">component_molar_concentration</span> <span class="o">=</span> <span class="n">x_reactor2</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">x_reactor2</span> <span class="o">=</span> <span class="n">reshape</span><span class="p">(</span><span class="n">x_reactor2</span><span class="p">,</span> <span class="p">(</span><span class="n">ND2</span> <span class="o">*</span> <span class="n">NUM_COMPONENTS</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">u_reactor2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer2</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">total_volumetric_flowrate</span>
+
+        <span class="c1"># constant total volumetric flowrate in the axial direction</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactor2</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">total_volumetric_flowrate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor2</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">total_volumetric_flowrate</span>
+
+        <span class="c1"># mixer 3</span>
+        <span class="c1"># from reactor 2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer3</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">component_molar_concentration_to_component_mass_concentration</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer3</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">component_mass_concentration_to_component_mass_flowrate</span><span class="p">()</span>
+        <span class="c1"># stream 5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer3</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">component_mass_fraction</span><span class="p">[</span><span class="mi">12</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.022</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer3</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">component_mass_fraction</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.978</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer3</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">evaluate_average_mass_density</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer3</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">total_volumetric_flowrate</span> <span class="o">=</span> <span class="mf">0.2</span> <span class="o">/</span> <span class="mf">1000.0</span>  <span class="c1"># 0.3 # 0.2 # [mL/min] Fixed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer3</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">total_volumetric_flowrate_to_total_mass_flowrate</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer3</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">total_mass_flowrate_to_component_mass_flowrate</span><span class="p">()</span>
+        <span class="c1"># stream 6</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer3</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">component_volumetric_flowrate</span><span class="p">[</span><span class="mi">13</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">/</span> <span class="mf">1000.0</span>  <span class="c1"># 0.5 # [mL/min] Fixed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer3</span><span class="o">.</span><span class="n">input</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">component_volumetric_flowrate_to_component_mass_flowrate</span><span class="p">()</span>
+        <span class="c1"># mix the 3 streams</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer3</span><span class="o">.</span><span class="n">mix_streams_mass</span><span class="p">()</span>
+        <span class="c1"># auxilliary calculations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer3</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">evaluate_component_mass_fraction</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer3</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">evaluate_average_mass_density</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer3</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">evaluate_total_volumetric_flowrate</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mixer3</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">evaluate_component_molar_concentration</span><span class="p">()</span>
+
+        <span class="c1"># reactor 3</span>
+        <span class="n">x_reactor3</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">NUM_COMPONENTS</span> <span class="o">*</span> <span class="p">(</span><span class="n">ND1</span> <span class="o">+</span> <span class="n">ND2</span><span class="p">):</span><span class="n">NUM_COMPONENTS</span> <span class="o">*</span> <span class="p">(</span><span class="n">ND1</span> <span class="o">+</span> <span class="n">ND2</span> <span class="o">+</span> <span class="n">ND3</span><span class="p">)]</span>
+        <span class="n">x_reactor3</span> <span class="o">=</span> <span class="n">reshape</span><span class="p">(</span><span class="n">x_reactor3</span><span class="p">,</span> <span class="p">(</span><span class="n">NUM_COMPONENTS</span><span class="p">,</span> <span class="n">ND3</span><span class="p">))</span>  <span class="c1"># reshape</span>
+        <span class="c1"># inlet dirichlet boundary condition</span>
+        <span class="n">x_reactor3</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor3</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">component_molar_concentration</span><span class="p">[:]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactor3</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">component_molar_concentration</span> <span class="o">=</span> <span class="n">x_reactor3</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">x_reactor3</span> <span class="o">=</span> <span class="n">reshape</span><span class="p">(</span><span class="n">x_reactor3</span><span class="p">,</span> <span class="p">(</span><span class="n">ND3</span> <span class="o">*</span> <span class="n">NUM_COMPONENTS</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">u_reactor3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mixer3</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">total_volumetric_flowrate</span>
+
+        <span class="c1"># constant total volumetric flowrate in the axial direction</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactor3</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">total_volumetric_flowrate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor3</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">total_volumetric_flowrate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactor3</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">component_molar_concentration_to_component_mass_concentration</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactor3</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">component_mass_concentration_to_component_mass_flowrate</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactor3</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">evaluate_component_mass_fraction</span><span class="p">()</span>
+
+        <span class="c1"># separator 1</span>
+        <span class="n">x_llseparator</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">NUM_COMPONENTS</span> <span class="o">*</span> <span class="p">(</span><span class="n">ND1</span> <span class="o">+</span> <span class="n">ND2</span> <span class="o">+</span> <span class="n">ND3</span><span class="p">):]</span>
+        <span class="n">q_llseparator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor3</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">total_volumetric_flowrate</span>
+        <span class="n">component_molar_concentration_llseparator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor3</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">component_molar_concentration</span><span class="p">[:]</span>
+        <span class="n">component_mass_fraction_llseparator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor3</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">component_mass_fraction</span><span class="p">[:]</span>
+        <span class="n">u_llseparator</span> <span class="o">=</span> <span class="n">vertcat</span><span class="p">(</span><span class="n">q_llseparator</span><span class="p">,</span> <span class="n">component_molar_concentration_llseparator</span><span class="p">,</span>
+                                <span class="n">component_mass_fraction_llseparator</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">vertcat</span><span class="p">(</span><span class="n">x_reactor1</span><span class="p">,</span> <span class="n">x_reactor2</span><span class="p">,</span> <span class="n">x_reactor3</span><span class="p">,</span> <span class="n">x_llseparator</span><span class="p">),</span> \
+               <span class="n">vertcat</span><span class="p">(</span><span class="n">u_reactor1</span><span class="p">,</span> <span class="n">u_reactor2</span><span class="p">,</span> <span class="n">u_reactor3</span><span class="p">,</span> <span class="n">u_llseparator</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Plant.get_derivative"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.Plant.get_derivative">[docs]</a>    <span class="k">def</span> <span class="nf">get_derivative</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">u</span><span class="p">):</span>
+        <span class="c1"># some variables</span>
+        <span class="n">ND1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor1</span><span class="o">.</span><span class="n">num_discretization_points</span>
+        <span class="n">ND2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor2</span><span class="o">.</span><span class="n">num_discretization_points</span>
+        <span class="n">ND3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor3</span><span class="o">.</span><span class="n">num_discretization_points</span>
+
+        <span class="c1"># Reactor 1</span>
+        <span class="n">x_reactor1</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span> <span class="n">NUM_COMPONENTS</span> <span class="o">*</span> <span class="n">ND1</span><span class="p">]</span>
+        <span class="n">T_reactor1</span> <span class="o">=</span> <span class="mf">373.15</span>  <span class="c1"># [K] Fixed reactor temperature</span>
+        <span class="n">q_reactor1</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">u_reactor1</span> <span class="o">=</span> <span class="p">[</span><span class="n">q_reactor1</span><span class="p">,</span> <span class="n">T_reactor1</span><span class="p">]</span>
+        <span class="c1"># reactor 1 state velocities</span>
+        <span class="n">xdot_reactor1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor1</span><span class="o">.</span><span class="n">get_derivative</span><span class="p">(</span><span class="n">x_reactor1</span><span class="p">,</span> <span class="n">u_reactor1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Reactor 2</span>
+        <span class="n">x_reactor2</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">NUM_COMPONENTS</span> <span class="o">*</span> <span class="n">ND1</span><span class="p">:</span> <span class="n">NUM_COMPONENTS</span> <span class="o">*</span> <span class="p">(</span><span class="n">ND1</span> <span class="o">+</span> <span class="n">ND2</span><span class="p">)]</span>
+        <span class="n">T_reactor2</span> <span class="o">=</span> <span class="mf">373.15</span>  <span class="c1"># [K] Fixed reactor temperature</span>
+        <span class="n">q_reactor2</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">u_reactor2</span> <span class="o">=</span> <span class="p">[</span><span class="n">q_reactor2</span><span class="p">,</span> <span class="n">T_reactor2</span><span class="p">]</span>
+        <span class="c1"># reactor 2 state velocities</span>
+        <span class="n">xdot_reactor2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor2</span><span class="o">.</span><span class="n">get_derivative</span><span class="p">(</span><span class="n">x_reactor2</span><span class="p">,</span> <span class="n">u_reactor2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Reactor 3</span>
+        <span class="n">x_reactor3</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">NUM_COMPONENTS</span> <span class="o">*</span> <span class="p">(</span><span class="n">ND1</span> <span class="o">+</span> <span class="n">ND2</span><span class="p">):</span> <span class="n">NUM_COMPONENTS</span> <span class="o">*</span> <span class="p">(</span><span class="n">ND1</span> <span class="o">+</span> <span class="n">ND2</span> <span class="o">+</span> <span class="n">ND3</span><span class="p">)]</span>
+        <span class="n">T_reactor3</span> <span class="o">=</span> <span class="mf">323.15</span>  <span class="c1"># [K] Fixed reactor temperature</span>
+        <span class="n">q_reactor3</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">u_reactor3</span> <span class="o">=</span> <span class="p">[</span><span class="n">q_reactor3</span><span class="p">,</span> <span class="n">T_reactor3</span><span class="p">]</span>
+        <span class="c1"># reactor 3 state velocities</span>
+        <span class="n">xdot_reactor3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor3</span><span class="o">.</span><span class="n">get_derivative</span><span class="p">(</span><span class="n">x_reactor3</span><span class="p">,</span> <span class="n">u_reactor3</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Separator 1</span>
+        <span class="n">x_llseparator</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">NUM_COMPONENTS</span> <span class="o">*</span> <span class="p">(</span><span class="n">ND1</span> <span class="o">+</span> <span class="n">ND2</span> <span class="o">+</span> <span class="n">ND3</span><span class="p">):]</span>
+        <span class="n">z_llseparator</span> <span class="o">=</span> <span class="n">z</span><span class="p">[:]</span>
+        <span class="n">u_llseparator</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="mi">3</span><span class="p">:]</span>
+        <span class="n">xdot_llseparator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">llseparator</span><span class="o">.</span><span class="n">get_derivative</span><span class="p">(</span><span class="n">x_llseparator</span><span class="p">,</span> <span class="n">z_llseparator</span><span class="p">,</span> <span class="n">u_llseparator</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">xdot</span> <span class="o">=</span> <span class="n">vertcat</span><span class="p">(</span><span class="n">xdot_reactor1</span><span class="p">,</span> <span class="n">xdot_reactor2</span><span class="p">,</span> <span class="n">xdot_reactor3</span><span class="p">,</span> <span class="n">xdot_llseparator</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">xdot</span></div>
+
+<div class="viewcode-block" id="Plant.get_algebraic"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.Plant.get_algebraic">[docs]</a>    <span class="k">def</span> <span class="nf">get_algebraic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">u</span><span class="p">):</span>
+        <span class="n">ND1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor1</span><span class="o">.</span><span class="n">num_discretization_points</span>
+        <span class="n">ND2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor2</span><span class="o">.</span><span class="n">num_discretization_points</span>
+        <span class="n">ND3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor3</span><span class="o">.</span><span class="n">num_discretization_points</span>
+
+        <span class="n">x_llseparator</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="n">NUM_COMPONENTS</span> <span class="o">*</span> <span class="p">(</span><span class="n">ND1</span> <span class="o">+</span> <span class="n">ND2</span> <span class="o">+</span> <span class="n">ND3</span><span class="p">):]</span>
+        <span class="n">z_llseparator</span> <span class="o">=</span> <span class="n">z</span><span class="p">[:]</span>
+        <span class="n">u_llseparator</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="mi">3</span><span class="p">:]</span>
+        <span class="n">res_llseparator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">llseparator</span><span class="o">.</span><span class="n">get_algebraic</span><span class="p">(</span><span class="n">x_llseparator</span><span class="p">,</span> <span class="n">z_llseparator</span><span class="p">,</span> <span class="n">u_llseparator</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">res_llseparator</span></div></div>
+
+
+<span class="c1"># simulate model for one time step and get next states and output</span>
+<div class="viewcode-block" id="atropine_sim_model"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.atropine_sim_model">[docs]</a><span class="k">def</span> <span class="nf">atropine_sim_model</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">D</span><span class="p">):</span>
+    <span class="c1"># x = state</span>
+    <span class="c1"># u =  input.</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">u</span> <span class="o">/</span> <span class="mi">1000</span>  <span class="c1"># this has been scaled in the optimization problem. hence the division by 1000 to unscale it</span>
+    <span class="n">xplus</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>  <span class="c1">#</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">xplus</span><span class="p">,</span> <span class="n">y</span></div>
+
+
+<span class="c1"># MPC/EMPC controller</span>
+<div class="viewcode-block" id="atropine_mpc_controller"><a class="viewcode-back" href="../../../../api/smpl.envs.models.html#smpl.envs.models.atropine_process.atropine_mpc_controller">[docs]</a><span class="k">def</span> <span class="nf">atropine_mpc_controller</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">Nx</span><span class="p">,</span> <span class="n">Nu</span><span class="p">,</span> <span class="n">uss</span><span class="p">,</span> <span class="n">ur</span><span class="p">,</span> <span class="n">yr</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">D</span><span class="p">):</span>
+    <span class="c1"># controller weights. different values may lead to different controller performance or cause instability</span>
+    <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.1</span>  <span class="c1"># weight on inputs</span>
+    <span class="n">Q</span> <span class="o">=</span> <span class="mi">10</span>  <span class="c1"># weight on output</span>
+
+    <span class="c1"># start with empty NLP</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># decision variables</span>
+    <span class="n">w0</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># decision variables initial guess</span>
+    <span class="n">lbw</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># lower bound on decision variables</span>
+    <span class="n">ubw</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># upper bound on decision variables</span>
+    <span class="n">J</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># initial cost</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># state constraint</span>
+    <span class="n">lbg</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># lower bound on state constraint</span>
+    <span class="n">ubg</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># upper bound on state constraint</span>
+
+    <span class="c1"># formulate NLP</span>
+    <span class="n">xk</span> <span class="o">=</span> <span class="n">x0</span>  <span class="c1"># fix initial state from state estimator</span>
+
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N</span><span class="p">):</span>
+        <span class="n">Uk</span> <span class="o">=</span> <span class="n">SX</span><span class="o">.</span><span class="n">sym</span><span class="p">(</span><span class="s1">&#39;U_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">Nu</span><span class="p">)</span>  <span class="c1"># create input variable at time step k</span>
+        <span class="n">w</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Uk</span><span class="p">)</span>  <span class="c1"># store in decision variable list</span>
+        <span class="n">lbw</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">-</span> <span class="n">uss</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">)</span>  <span class="c1"># lower bound on inputs at time k</span>
+        <span class="n">ubw</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">uss</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">)</span>  <span class="c1"># upper bound on inputs at time k</span>
+        <span class="n">w0</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">Nu</span><span class="p">)</span>  <span class="c1"># initial input guess</span>
+
+        <span class="c1"># simulate model to get x(k+1) and y(k)</span>
+        <span class="n">xk</span><span class="p">,</span> <span class="n">yk</span> <span class="o">=</span> <span class="n">atropine_sim_model</span><span class="p">(</span><span class="n">xk</span><span class="p">,</span> <span class="n">Uk</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">D</span><span class="p">)</span>
+        <span class="c1"># calculate the cost</span>
+        <span class="n">J</span> <span class="o">+=</span> <span class="n">Q</span> <span class="o">*</span> <span class="p">(</span><span class="n">yk</span> <span class="o">-</span> <span class="n">yr</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> \
+             <span class="o">+</span> <span class="n">mtimes</span><span class="p">((</span><span class="n">Uk</span> <span class="o">-</span> <span class="n">ur</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">mtimes</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="p">(</span><span class="n">Uk</span> <span class="o">-</span> <span class="n">ur</span><span class="p">)))</span>
+        <span class="c1"># add state constraints. currently the states are unconstrained since the</span>
+        <span class="c1"># identified model states have no physical meaning</span>
+        <span class="n">g</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xk</span><span class="p">)</span>
+        <span class="n">lbg</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="o">-</span><span class="n">inf</span><span class="p">]</span> <span class="o">*</span> <span class="n">Nx</span><span class="p">)</span>
+        <span class="n">ubg</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">inf</span><span class="p">]</span> <span class="o">*</span> <span class="n">Nx</span><span class="p">)</span>
+
+    <span class="c1"># Create an NLP solver</span>
+    <span class="n">opts</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">opts</span><span class="p">[</span><span class="s2">&quot;verbose&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">opts</span><span class="p">[</span><span class="s2">&quot;ipopt.print_level&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">opts</span><span class="p">[</span><span class="s2">&quot;print_time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">prob</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;f&#39;</span><span class="p">:</span> <span class="n">J</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">vertcat</span><span class="p">(</span><span class="o">*</span><span class="n">w</span><span class="p">),</span> <span class="s1">&#39;g&#39;</span><span class="p">:</span> <span class="n">vertcat</span><span class="p">(</span><span class="o">*</span><span class="n">g</span><span class="p">)}</span>
+    <span class="n">solver</span> <span class="o">=</span> <span class="n">nlpsol</span><span class="p">(</span><span class="s1">&#39;solver&#39;</span><span class="p">,</span> <span class="s1">&#39;ipopt&#39;</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">opts</span><span class="p">)</span>
+
+    <span class="c1"># Solve the NLP</span>
+    <span class="n">sol</span> <span class="o">=</span> <span class="n">solver</span><span class="p">(</span>
+        <span class="n">x0</span><span class="o">=</span><span class="n">vertcat</span><span class="p">(</span><span class="o">*</span><span class="n">w0</span><span class="p">),</span>
+        <span class="n">lbx</span><span class="o">=</span><span class="n">vertcat</span><span class="p">(</span><span class="o">*</span><span class="n">lbw</span><span class="p">),</span>
+        <span class="n">ubx</span><span class="o">=</span><span class="n">vertcat</span><span class="p">(</span><span class="o">*</span><span class="n">ubw</span><span class="p">),</span>
+        <span class="n">lbg</span><span class="o">=</span><span class="n">vertcat</span><span class="p">(</span><span class="o">*</span><span class="n">lbg</span><span class="p">),</span>
+        <span class="n">ubg</span><span class="o">=</span><span class="n">vertcat</span><span class="p">(</span><span class="o">*</span><span class="n">ubg</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="c1"># get solution</span>
+    <span class="n">w_opt</span> <span class="o">=</span> <span class="n">sol</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]</span>
+    <span class="n">u_opt</span> <span class="o">=</span> <span class="n">w_opt</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">Nu</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">u_opt</span><span class="o">.</span><span class="n">full</span><span class="p">()</span><span class="o">.</span><span class="n">ravel</span><span class="p">()</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Quartic.ai.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

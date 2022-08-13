@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MAbEnv &mdash; smpl latest documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="smpl.envs package" href="api/smpl.envs.html" />
+    <link rel="prev" title="BeerFMTEnv" href="beerfmtenv.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> smpl
+          </a>
+              <div class="version">
+                latest
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="reactorenv.html">ReactorEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="atropineenv.html">AtropineEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pensimenv.html">PenSimEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="beerfmtenv.html">BeerFMTEnv</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">MAbEnv</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#introduction-to-modeling-and-operation-of-a-continuous-monoclonal-antibody-mab-manufacturing-process">Introduction to Modeling and Operation of a Continuous Monoclonal Antibody (mAb) Manufacturing Process</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#process-description">Process description</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#prebuilt-upstream-controllers">Prebuilt Upstream Controllers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#simulation-settings">Simulation settings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#upstream-simulation-results">Upstream Simulation Results</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#model-parameters">Model parameters</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#upstream">Upstream</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#downstream">Downstream</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mabenv-module">mAbEnv module</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/smpl.envs.html">smpl.envs package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">smpl</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>MAbEnv</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/mabenv.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<section id="mabenv">
+<h1>MAbEnv<a class="headerlink" href="#mabenv" title="Permalink to this headline"></a></h1>
+<section id="introduction-to-modeling-and-operation-of-a-continuous-monoclonal-antibody-mab-manufacturing-process">
+<h2>Introduction to Modeling and Operation of a Continuous Monoclonal Antibody (mAb) Manufacturing Process<a class="headerlink" href="#introduction-to-modeling-and-operation-of-a-continuous-monoclonal-antibody-mab-manufacturing-process" title="Permalink to this headline"></a></h2>
+<p>Drugs based on monoclonal antibodies (mAbs) play an indispensable role
+in biopharmaceutical industry in aspects of therapeutic and market
+potentials. In therapy and diagnosis applications, mAbs are widely used
+for the treatment of autoimmune diseases, and cancer, etc. According to
+a recent publication, mAbs also show promising results in the treatment
+of COVID-19. Until September 22, 2020,
+94 therapeutic mAbs have been approved by U.S. Food &amp; Drug
+Administration (FDA) and the
+number of mAbs approved within 2010-2020 is three times more than those
+approved before 2010. In terms
+of its market value, it is expected to reach a value of $198.2 billion
+in 2023. Integrated continuous manufacturing
+of mAbs represents the state-of-the-art in mAb manufacturing and has
+attracted a lot of attention, because of the steady-state operations,
+high volumetric productivity, and reduced equipment size and capital
+cost, etc. However, there is no
+existing mathematical model of the integrated manufacturing process and
+there is no optimal control algorithm of the entire integrated process.
+This project fills the knowledge gaps by first developing a mathematical
+model of the integrated continuous manufacturing process of mAbs.</p>
+</section>
+<section id="process-description">
+<h2>Process description<a class="headerlink" href="#process-description" title="Permalink to this headline"></a></h2>
+<p>The mAb production process consists of the
+upstream and the downstream processes. In the upstream process, mAb is
+produced in a bioreactor which provides a conducive environment mAb
+growth. The downstream process on the other hand recovers the mAb from
+the upstream process for storage. In the upstream process for mAb
+production, fresh media is fed into the bioreactor where a conducive
+environment is provided for the growth of mAb. A cooling jacket in which
+a coolant flows is used to control the temperature of the reaction
+mixture. The contents exiting the bioreactor is passed through a
+microfiltration unit which recovers part of the fresh media in the
+stream. The recovered fresh media is recycled back into the bioreactor
+while the stream with high amount of mAb is sent to the downstream
+process for further processing. A schematic diagram of upstream process
+is shown in Figure <a class="reference internal" href="#fig-upstream"><span class="std std-numref">Fig. 1</span></a>.</p>
+<blockquote>
+<div><figure class="align-center" id="fig-upstream">
+<a class="reference internal image-reference" href="_images/upstream_process.png"><img alt="_images/upstream_process.png" src="_images/upstream_process.png" style="width: 90.0%;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 1 </span><span class="caption-text">A schematic diagram of the upstream process for mAb production</span><a class="headerlink" href="#fig-upstream" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
+</div></blockquote>
+<p>The objective of the downstream process for mAb production is to purify
+the stream with high concentration of mAb from the upstream and obtain
+the desired product. It is composed of a
+set of fractionating columns, for separating mAb from impurities, and
+holdup loops, for virus inactivation (VI) and pH conditioning. The
+schematic diagram of downstream process is shown in <a class="reference internal" href="#fig-downstream"><span class="std std-numref">Fig. 2</span></a>.</p>
+<blockquote>
+<div><figure class="align-center" id="fig-downstream">
+<a class="reference internal image-reference" href="_images/downstream_process.png"><img alt="_images/downstream_process.png" src="_images/downstream_process.png" style="width: 90.0%;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 2 </span><span class="caption-text">A schematic diagram of the downstream process for mAb production</span><a class="headerlink" href="#fig-downstream" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
+</div></blockquote>
+</section>
+<section id="prebuilt-upstream-controllers">
+<h2>Prebuilt Upstream Controllers<a class="headerlink" href="#prebuilt-upstream-controllers" title="Permalink to this headline"></a></h2>
+<p>There are two provided implementation of advanced
+process control (APC) techniques on the operation of the upstream continuous mAb
+production process,
+Model Predictive Control (MAbUpstreamMPC) and Economic Model Predictive Control
+(MAbUpstreamEMPC). Here we provide a brief description of both.</p>
+</section>
+<section id="simulation-settings">
+<h2>Simulation settings<a class="headerlink" href="#simulation-settings" title="Permalink to this headline"></a></h2>
+<p>After conducting extensive open-loop tests, the control and prediction
+horizons <span class="math notranslate nohighlight">\(N\)</span> for both controllers was fixed at 100. This implies
+that at a sampling time of 1 hour, the controllers plan 100 hours into
+the future. The weights on the deviation of the states and input from
+the setpoint were identify matrices.</p>
+</section>
+<section id="upstream-simulation-results">
+<h2>Upstream Simulation Results<a class="headerlink" href="#upstream-simulation-results" title="Permalink to this headline"></a></h2>
+<p>The state and input trajectories of the system under the operation of
+both MPC and EMPC is shown in Figures <a class="reference internal" href="#fig-figure-1"><span class="std std-numref">Fig. 3</span></a> and
+<a class="reference internal" href="#fig-figure-12"><span class="std std-numref">Fig. 14</span></a>. It can be seen that MPC and EMPC uses
+different strategies to control the process. As an example, it can be
+seen in Figure <a class="reference internal" href="#fig-figure-9"><span class="std std-numref">Fig. 11</span></a> that EMPC initially heats up the
+system before gradually reducing it whereas MPC goes to the setpoint and
+stays there. Again, EMPC tries to reduce the flow of the recycle stream
+while MPC increases it as can be seen in Figure
+<a class="reference internal" href="#fig-figure-11"><span class="std std-numref">Fig. 13</span></a>. In both controllers though, the recycle
+stream flow rate was kept low. Although the setpoint for the MPC was
+determined under the same economic cost function used in the EMPC, it
+can be seen that the EMPC does not go to that optimal steady state. This
+could be due to the horizon being short for EMPC. Another possibility
+could be due to numerical errors since the cost function was not scaled
+in the EMPC. The cases where MPC was unable to go to the setpoint could
+be due to numerical errors as a result of the large values of the states
+and inputs. Further analysis may be required to confirm these
+assertions.</p>
+<blockquote>
+<div><figure class="align-center" id="fig-figure-1">
+<a class="reference internal image-reference" href="_images/Figure_1.png"><img alt="_images/Figure_1.png" src="_images/Figure_1.png" style="width: 90.0%;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 3 </span><span class="caption-text">Trajectories of concentration of viable cells in the bioreactor
+and separator under the two control algorithms</span><a class="headerlink" href="#fig-figure-1" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="fig-figure-2">
+<a class="reference internal image-reference" href="_images/Figure_2.png"><img alt="_images/Figure_2.png" src="_images/Figure_2.png" style="width: 90.0%;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 4 </span><span class="caption-text">Trajectories of total viable cells in the bioreactor and separator
+under the two control algorithms</span><a class="headerlink" href="#fig-figure-2" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="fig-figure-3">
+<a class="reference internal image-reference" href="_images/Figure_3.png"><img alt="_images/Figure_3.png" src="_images/Figure_3.png" style="width: 90.0%;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 5 </span><span class="caption-text">Trajectories of glucose concentration in the bioreactor and
+separator under the two control algorithms</span><a class="headerlink" href="#fig-figure-3" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="fig-figure-4">
+<a class="reference internal image-reference" href="_images/Figure_4.png"><img alt="_images/Figure_4.png" src="_images/Figure_4.png" style="width: 90.0%;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 6 </span><span class="caption-text">Trajectories of glutamine concentration in the bioreactor and
+separator under the two control algorithms</span><a class="headerlink" href="#fig-figure-4" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="fig-figure-5">
+<a class="reference internal image-reference" href="_images/Figure_5.png"><img alt="_images/Figure_5.png" src="_images/Figure_5.png" style="width: 90.0%;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 7 </span><span class="caption-text">Trajectories of lactate concentration in the bioreactor and
+separator under the two control algorithms</span><a class="headerlink" href="#fig-figure-5" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="fig-figure-6">
+<a class="reference internal image-reference" href="_images/Figure_6.png"><img alt="_images/Figure_6.png" src="_images/Figure_6.png" style="width: 90.0%;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 8 </span><span class="caption-text">Trajectories of ammonia concentration in the bioreactor and
+separator under the two control algorithms</span><a class="headerlink" href="#fig-figure-6" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="fig-figure-7">
+<a class="reference internal image-reference" href="_images/Figure_7.png"><img alt="_images/Figure_7.png" src="_images/Figure_7.png" style="width: 90.0%;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 9 </span><span class="caption-text">Trajectories of mAb concentration in the bioreactor and separator
+under the two control algorithms</span><a class="headerlink" href="#fig-figure-7" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="fig-figure-8-png">
+<a class="reference internal image-reference" href="_images/Figure_8.png"><img alt="_images/Figure_8.png" src="_images/Figure_8.png" style="width: 90.0%;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 10 </span><span class="caption-text">Trajectories of reaction mixture volume in the bioreactor and
+separator under the two control algorithms</span><a class="headerlink" href="#fig-figure-8-png" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="fig-figure-9">
+<a class="reference internal image-reference" href="_images/Figure_9.png"><img alt="_images/Figure_9.png" src="_images/Figure_9.png" style="width: 90.0%;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 11 </span><span class="caption-text">Trajectories of the bioreactor temperature and the coolant
+temperature under the two control algorithms</span><a class="headerlink" href="#fig-figure-9" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="fig-figure-10">
+<a class="reference internal image-reference" href="_images/Figure_10.png"><img alt="_images/Figure_10.png" src="_images/Figure_10.png" style="width: 90.0%;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 12 </span><span class="caption-text">Trajectories of flow in and out of the bioreactor under the two
+control algorithms</span><a class="headerlink" href="#fig-figure-10" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="fig-figure-11">
+<a class="reference internal image-reference" href="_images/Figure_11.png"><img alt="_images/Figure_11.png" src="_images/Figure_11.png" style="width: 90.0%;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 13 </span><span class="caption-text">Trajectories of the recycle flow rate and the flow rate out of the
+upstream process under the two control algorithms</span><a class="headerlink" href="#fig-figure-11" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="align-center" id="fig-figure-12">
+<a class="reference internal image-reference" href="_images/Figure_12.png"><img alt="_images/Figure_12.png" src="_images/Figure_12.png" style="width: 90.0%;" /></a>
+<figcaption>
+<p><span class="caption-number">Fig. 14 </span><span class="caption-text">Trajectories of glucose in fresh media under the two control
+algorithms</span><a class="headerlink" href="#fig-figure-12" title="Permalink to this image"></a></p>
+</figcaption>
+</figure>
+</div></blockquote>
+<section id="model-parameters">
+<h3>Model parameters<a class="headerlink" href="#model-parameters" title="Permalink to this headline"></a></h3>
+</section>
+</section>
+<section id="upstream">
+<span id="upstream-1"></span><h2>Upstream<a class="headerlink" href="#upstream" title="Permalink to this headline"></a></h2>
+<div class="docutils container" id="tb-upstream-parameters">
+<table class="docutils align-center" id="id1">
+<caption><span class="caption-number">Table 1 </span><span class="caption-text">Parameters for the upstream process model</span><a class="headerlink" href="#id1" title="Permalink to this table"></a></caption>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 41%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(K_{d,amm}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(mM\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(1.76\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(K_{d,gln}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(hr^{-1}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.0096\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(K_{glc}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(mM\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.75\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(K_{gln}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(mM\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.038\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(KI_{amm}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(mM\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(28.48\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(KI_{lac}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(mM\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(171.76\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(m_{glc}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(mmol/(cell \cdot hr)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(4.9 \times 10^{-14}\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(Q_{mAb}^{max}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(mg/(cell\cdot hr)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(6.59 \times 10^{-10}\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(Y_{amm,gln}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(mmol/mmol\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.45\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(Y_{lac,glc}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(mmol/mmol\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(2.0\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(Y_{X,glc}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(cell/mmol\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(2.6 \times 10^8\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(Y_{X,gln}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(cell/mmol\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(8.0 \times 10^8\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(\alpha_1\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\((mM \cdot L)/(cell \cdot h)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(3.4 \times 10^{-13}\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(\alpha_2\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(mM\)</span></p></td>
+<td><p>4.0</p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(-\Delta H\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(J/mol\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(5.0 \times 10^5\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(rho\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(g/L\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(1560.0\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(c_p\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(J/(g ^\circ C)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(1.244\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(U\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(J/(h ^\circ C)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(4 \times 10^2\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(T_{in}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(^\circ C\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(37.0\)</span></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="downstream">
+<span id="downstream-1"></span><h2>Downstream<a class="headerlink" href="#downstream" title="Permalink to this headline"></a></h2>
+<p>The parameters of downstream model are obtained from the work of
+Gomis-Fons et al  and several
+parameters are modified because the process is upscaled from lab scale
+to industrial scale. They are summarized in
+Table <a class="reference external" href="#tb:para_down">6.2</a>.</p>
+<div class="docutils container" id="tb-para-down">
+<table class="docutils align-center" id="id2">
+<caption><span class="caption-number">Table 2 </span><span class="caption-text">Parameters of digital twin of downstream</span><a class="headerlink" href="#id2" title="Permalink to this table"></a></caption>
+<colgroup>
+<col style="width: 11%" />
+<col style="width: 27%" />
+<col style="width: 25%" />
+<col style="width: 38%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Step</p></th>
+<th class="head"><p>Parameter</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Capture</p></td>
+<td><p><span class="math notranslate nohighlight">\(q_{max,1}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(mg/mL\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(36.45\)</span></p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><span class="math notranslate nohighlight">\(k_{1}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(mL/(mg~min)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.704\)</span></p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><span class="math notranslate nohighlight">\(q_{max,2}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(mg/mL\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(77.85\)</span></p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><span class="math notranslate nohighlight">\(k_{2}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(mL/(mg~min)\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(2.1\cdot10^{-2}\)</span></p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><span class="math notranslate nohighlight">\(K\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(mL/mg\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(15.3\)</span></p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><span class="math notranslate nohighlight">\(D_{eff}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(cm^{2}/min\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(7.6\cdot10^{-5}\)</span></p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><span class="math notranslate nohighlight">\(D_{ax}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(cm^{2}/min\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(5.5\cdot10^{-1}v\)</span></p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><span class="math notranslate nohighlight">\(k_{f}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(cm/min\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(6.7\cdot10^{-2}v^{0.58}\)</span></p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><span class="math notranslate nohighlight">\(r_{p}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(cm\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(4.25\cdot10^{-3}\)</span></p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><span class="math notranslate nohighlight">\(L\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(cm\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(20\)</span></p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><span class="math notranslate nohighlight">\(V\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(mL\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(10^5\)</span></p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><span class="math notranslate nohighlight">\(\epsilon_c\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(-\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.31\)</span></p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><span class="math notranslate nohighlight">\(\epsilon_p\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(-\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.94\)</span></p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><span class="math notranslate nohighlight">\(q_{max,elu}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(mg/mL\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(114.3\)</span></p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><span class="math notranslate nohighlight">\(k_{elu}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(min^{-1}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.64\)</span></p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><span class="math notranslate nohighlight">\(H_{0,elu}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M^{\beta}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(2.2\cdot10^{-2}\)</span></p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><span class="math notranslate nohighlight">\(\beta_{elu}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(-\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.2\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p>Loop</p></td>
+<td><p><span class="math notranslate nohighlight">\(D_{ax}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(cm^{2}/min\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(2.9\cdot10^{2}v\)</span></p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><span class="math notranslate nohighlight">\(L\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(cm\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(600\)</span></p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><span class="math notranslate nohighlight">\(V\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(mL\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(5\cdot10^5\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p>CEX</p></td>
+<td><p><span class="math notranslate nohighlight">\(q_{max}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(mg/mL\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(150.2\)</span></p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><span class="math notranslate nohighlight">\(k\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(min^{-1}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.99\)</span></p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><span class="math notranslate nohighlight">\(H_{0}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(M^{\beta}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(6.9\cdot10^{-4}\)</span></p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><span class="math notranslate nohighlight">\(\beta\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(-\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(8.5\)</span></p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><span class="math notranslate nohighlight">\(D_{app}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(cm^{2}/min\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(1.1\cdot10^{-1}v\)</span></p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><span class="math notranslate nohighlight">\(L\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(cm\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(10\)</span></p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><span class="math notranslate nohighlight">\(V\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(mL\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(5\cdot10^{4}\)</span></p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><span class="math notranslate nohighlight">\(\epsilon_{c}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(-\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.34\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p>AEX</p></td>
+<td><p><span class="math notranslate nohighlight">\(D_{app}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(cm^{2}/min\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(1.6\cdot10^{-1}v\)</span></p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><span class="math notranslate nohighlight">\(k\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(min^{-1}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(0\)</span></p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><span class="math notranslate nohighlight">\(L\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(cm\)</span></p></td>
+<td><p>10</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><span class="math notranslate nohighlight">\(V\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(mL\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(5\cdot10^{4}\)</span></p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><span class="math notranslate nohighlight">\(\epsilon_{c}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(-\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(0.34\)</span></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="mabenv-module">
+<h2>mAbEnv module<a class="headerlink" href="#mabenv-module" title="Permalink to this headline"></a></h2>
+<p>Following the discription above, we provide APIs as below:</p>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">smpl.envs.mabenv.</span></span><span class="sig-name descname"><span class="pre">MAbEnvGym</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">dataset_dir='smpl/configdata/mabenv'</span></em>, <em class="sig-param"><span class="pre">dense_reward=True</span></em>, <em class="sig-param"><span class="pre">normalize=True</span></em>, <em class="sig-param"><span class="pre">debug_mode=False</span></em>, <em class="sig-param"><span class="pre">action_dim=9</span></em>, <em class="sig-param"><span class="pre">observation_dim=1970</span></em>, <em class="sig-param"><span class="pre">reward_function=None</span></em>, <em class="sig-param"><span class="pre">done_calculator=None</span></em>, <em class="sig-param"><span class="pre">max_observations=None</span></em>, <em class="sig-param"><span class="pre">min_observations=None</span></em>, <em class="sig-param"><span class="pre">max_actions=None</span></em>, <em class="sig-param"><span class="pre">min_actions=None</span></em>, <em class="sig-param"><span class="pre">observation_name=None</span></em>, <em class="sig-param"><span class="pre">action_name=None</span></em>, <em class="sig-param"><span class="pre">np_dtype=&lt;class</span> <span class="pre">'numpy.float32'&gt;</span></em>, <em class="sig-param"><span class="pre">max_steps=200</span></em>, <em class="sig-param"><span class="pre">error_reward=-100.0</span></em>, <em class="sig-param"><span class="pre">initial_state_deviation_ratio=0.1</span></em>, <em class="sig-param"><span class="pre">upstream_states=19</span></em>, <em class="sig-param"><span class="pre">switch_threshold=0.5</span></em>, <em class="sig-param"><span class="pre">dt_itgr=60</span></em>, <em class="sig-param"><span class="pre">dt_spl=60</span></em>, <em class="sig-param"><span class="pre">ss_dir=None</span></em>, <em class="sig-param"><span class="pre">standard_reward_style='setpoint'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/mabenv.html#MAbEnvGym"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference internal" href="api/smpl.envs.html#smpl.envs.utils.smplEnvBase" title="smpl.envs.utils.smplEnvBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">smpl.envs.utils.smplEnvBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">done_calculator_standard</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_observation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step_count</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reward</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">done</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">done_info</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/mabenv.html#MAbEnvGym.done_calculator_standard"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><dl class="simple">
+<dt>check whether the current episode is considered finished.</dt><dd><p>returns a boolean value indicated done or not, and a dictionary with information.
+here in done_calculator_standard, done_info looks like {“terminal”: boolean, “timeout”: boolean},
+where “timeout” is true when episode end due to reaching the maximum episode length,
+“terminal” is true when “timeout” or episode end due to termination conditions such as env error encountered. (basically done)</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>current_observation</strong> (<em>[</em><em>np.ndarray</em><em>]</em>) – This is denormalized observation, as usual.</p></li>
+<li><p><strong>step_count</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a><em>]</em>) – step_count.</p></li>
+<li><p><strong>reward</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em>]</em>) – reward.</p></li>
+<li><p><strong>done</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a><em>]</em><em>, </em><em>optional</em>) – Defaults to None.</p></li>
+<li><p><strong>done_info</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)"><em>dict</em></a><em>]</em><em>, </em><em>optional</em>) – how the environment is finished. Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>done and done_info.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>[(<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)">float</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.10)">dict</a>)]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">evaluate_rewards_mean_std_over_episodes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">algorithms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_states</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_plt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./plt_results'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">computer_on_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/mabenv.html#MAbEnvGym.evaluate_rewards_mean_std_over_episodes"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>returns: mean and std of rewards over all episodes.
+since the rewards_list is not aligned (e.g. some trajectories are shorter than the others), so we cannot directly convert it to numpy array.
+we have to convert and unwrap the nested list.
+if computer_on_episodes, we first average the rewards_list over episodes, then compute the mean and std.
+else, we directly compute the mean and std for each step.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">evalute_algorithms</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">algorithms</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_episodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_states</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_plt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./plt_results'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/mabenv.html#MAbEnvGym.evalute_algorithms"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>when excecuting evalute_algorithms, the self.normalize should be False.
+algorithms: list of (algorithm, algorithm_name, normalize). algorithm has to have a method predict(observation) -&gt; action: np.ndarray.
+num_episodes: number of episodes to run
+error_reward: overwrite self.error_reward
+initial_states: None, location of numpy file of initial states or a (numpy) list of initial states
+to_plt: whether generates plot or not
+plot_dir: None or directory to save plots
+returns: list of average_rewards over each episode and num of episodes</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">evenly_spread_initial_states</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val_per_state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dump_location</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/mabenv.html#MAbEnvGym.evenly_spread_initial_states"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Evenly spread initial states.
+This function is needed only if the environment has steady_observations.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>val_per_state</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.10)"><em>int</em></a>) – how many values to sampler per state.</p>
+</dd>
+</dl>
+<p>Returns:
+[initial_states]: evenly spread initial_states.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">observation_beyond_box</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observation</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/mabenv.html#MAbEnvGym.observation_beyond_box"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>check if the observation is beyond the box, which is what we don’t want.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>observation</strong> (<em>[</em><em>np.ndarray</em><em>]</em>) – This is denormalized observation, as usual.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>observation is beyond the box or not.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)">bool</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">initial_state</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/mabenv.html#MAbEnvGym.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>required by gym.
+This function resets the environment and returns an initial observation.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">reward_function_standard</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">previous_observation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_observation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reward</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/mabenv.html#MAbEnvGym.reward_function_standard"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>the s, a, r, s, a calculation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>previous_observation</strong> (<em>[</em><em>np.ndarray</em><em>]</em>) – This is denormalized observation, as usual.</p></li>
+<li><p><strong>action</strong> (<em>[</em><em>np.ndarray</em><em>]</em>) – This is denormalized action, as usual.</p></li>
+<li><p><strong>current_observation</strong> (<em>[</em><em>np.ndarray</em><em>]</em>) – This is denormalized observation, as usual.</p></li>
+<li><p><strong>reward</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em>]</em>) – If reward is provided, directly return the reward.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>reward.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)">float</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">sample_initial_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lower_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper_bound</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/mabenv.html#MAbEnvGym.sample_initial_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>[summary]</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lower_bound</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em>, </em><em>optional</em>) – proportional to steady state.</p></li>
+<li><p><strong>upper_bound</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.10)"><em>float</em></a><em>, </em><em>optional</em>) – proportional to steady state.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>[description]</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>[np.ndarray]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/mabenv.html#MAbEnvGym.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>required by gym.
+This function performs one step within the environment and returns the observation, the reward, whether the episode is finished and debug information, if any.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">smpl.envs.mabenv.</span></span><span class="sig-name descname"><span class="pre">MAbUpstreamEMPC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">controller</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observation_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1970</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/mabenv.html#MAbUpstreamEMPC"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">o</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/mabenv.html#MAbUpstreamEMPC.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">smpl.envs.mabenv.</span></span><span class="sig-name descname"><span class="pre">MAbUpstreamMPC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">controller</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">9</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">observation_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1970</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/mabenv.html#MAbUpstreamMPC"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">o</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/mabenv.html#MAbUpstreamMPC.predict"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="beerfmtenv.html" class="btn btn-neutral float-left" title="BeerFMTEnv" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="api/smpl.envs.html" class="btn btn-neutral float-right" title="smpl.envs package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, SMPL Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

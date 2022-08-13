@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>smpl.envs.atropineenv &mdash; smpl latest documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> smpl
+          </a>
+              <div class="version">
+                latest
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../reactorenv.html">ReactorEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../atropineenv.html">AtropineEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pensimenv.html">PenSimEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../beerfmtenv.html">BeerFMTEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../mabenv.html">MAbEnv</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/smpl.envs.html">smpl.envs package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">smpl</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>smpl.envs.atropineenv</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for smpl.envs.atropineenv</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">AtropineEnv simulates an atropine production environment.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">io</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">from</span> <span class="nn">casadi</span> <span class="kn">import</span> <span class="n">DM</span>
+<span class="kn">from</span> <span class="nn">gym</span> <span class="kn">import</span> <span class="n">spaces</span><span class="p">,</span> <span class="n">Env</span>
+
+<span class="kn">from</span> <span class="nn">.helpers.constants</span> <span class="kn">import</span> <span class="n">USS</span><span class="p">,</span> <span class="n">INPUT_REFS</span><span class="p">,</span> <span class="n">OUTPUT_REF</span><span class="p">,</span> <span class="n">SIM_TIME</span>
+<span class="kn">from</span> <span class="nn">.helpers.helper_funcs</span> <span class="kn">import</span> <span class="n">state_estimator</span>
+<span class="kn">from</span> <span class="nn">.models.atropine_process</span> <span class="kn">import</span> <span class="n">Plant</span><span class="p">,</span> <span class="n">atropine_mpc_controller</span>
+<span class="kn">from</span> <span class="nn">.models.config</span> <span class="kn">import</span> <span class="n">ND1</span><span class="p">,</span> <span class="n">ND2</span><span class="p">,</span> <span class="n">ND3</span><span class="p">,</span> <span class="n">V1</span><span class="p">,</span> <span class="n">V2</span><span class="p">,</span> <span class="n">V3</span><span class="p">,</span> <span class="n">V4</span><span class="p">,</span> <span class="n">dt</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="o">*</span>
+
+
+<div class="viewcode-block" id="AtropineMPC"><a class="viewcode-back" href="../../../atropineenv.html#smpl.envs.atropineenv.AtropineMPC">[docs]</a><span class="k">class</span> <span class="nc">AtropineMPC</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">model_loc</span><span class="o">=</span><span class="s1">&#39;https://github.com/smpl-env/smpl-experiments/blob/main/configdata/atropineenv/model.npy?raw=true&#39;</span><span class="p">,</span>
+                 <span class="n">N</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">Nx</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">Nu</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+                 <span class="n">uss_subtracted</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reward_on_ess_subtracted</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">reward_on_steady</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">reward_on_absolute_efactor</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">reward_on_actions_penalty</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">reward_on_reject_actions</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">relaxed_max_min_actions</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">observation_include_t</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">observation_include_action</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">observation_include_uss</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">observation_include_ess</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">observation_include_e</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">observation_include_kf</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">observation_include_z</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">observation_include_x</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">model_loc</span><span class="p">)</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_preconfig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">content</span><span class="p">),</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">N</span> <span class="o">=</span> <span class="n">N</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Nx</span> <span class="o">=</span> <span class="n">Nx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Nu</span> <span class="o">=</span> <span class="n">Nu</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">uss_subtracted</span> <span class="o">=</span> <span class="n">uss_subtracted</span>  <span class="c1"># we assume that we can see the steady state output during steps. If true, we plus the actions with USS during steps.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reward_on_ess_subtracted</span> <span class="o">=</span> <span class="n">reward_on_ess_subtracted</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reward_on_steady</span> <span class="o">=</span> <span class="n">reward_on_steady</span>  <span class="c1"># whether reward base on Efactor (the small the better) or base on how close it is to the steady e-factor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reward_on_absolute_efactor</span> <span class="o">=</span> <span class="n">reward_on_absolute_efactor</span>  <span class="c1"># whether reward base on absolute Efactor. (is a valid input only if reward_on_steady is False)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reward_on_actions_penalty</span> <span class="o">=</span> <span class="n">reward_on_actions_penalty</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reward_on_reject_actions</span> <span class="o">=</span> <span class="n">reward_on_reject_actions</span>  <span class="c1"># when input actions are larger than max_actions, reject it and end the env immediately.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">relaxed_max_min_actions</span> <span class="o">=</span> <span class="n">relaxed_max_min_actions</span>  <span class="c1"># assume uss_subtracted = false.</span>
+
+        <span class="c1"># now, select what to include during observations. by default we should have format like </span>
+        <span class="c1"># USS1, USS2, USS3, USS4, U1, U2, U3, U4, ESS, E, KF_X1, KF_X2, Z1, Z2, ..., Z30</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_t</span> <span class="o">=</span> <span class="n">observation_include_t</span>  <span class="c1"># 1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_action</span> <span class="o">=</span> <span class="n">observation_include_action</span>  <span class="c1"># 4</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_uss</span> <span class="o">=</span> <span class="n">observation_include_uss</span>  <span class="c1"># 4</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_ess</span> <span class="o">=</span> <span class="n">observation_include_ess</span>  <span class="c1"># yss, 1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_e</span> <span class="o">=</span> <span class="n">observation_include_e</span>  <span class="c1"># y, efactor, 1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_kf</span> <span class="o">=</span> <span class="n">observation_include_kf</span>  <span class="c1"># after kalman filter, 2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_z</span> <span class="o">=</span> <span class="n">observation_include_z</span>  <span class="c1"># 30</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_x</span> <span class="o">=</span> <span class="n">observation_include_x</span>  <span class="c1"># 1694</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observation_include_kf</span><span class="p">)</span>
+
+<div class="viewcode-block" id="AtropineMPC.predict"><a class="viewcode-back" href="../../../atropineenv.html#smpl.envs.atropineenv.AtropineMPC.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="c1"># self.observation_include_t = observation_include_t  # 1</span>
+        <span class="c1"># self.observation_include_action = observation_include_action  # 4</span>
+        <span class="c1"># self.observation_include_uss = observation_include_uss  # 4</span>
+        <span class="c1"># self.observation_include_ess = observation_include_ess  # yss, 1</span>
+        <span class="c1"># self.observation_include_e = observation_include_e  # y, efactor, 1</span>
+        <span class="c1"># self.observation_include_kf = observation_include_kf  # after kalman filter, 2</span>
+        <span class="c1"># self.observation_include_z = observation_include_z  # 30</span>
+        <span class="c1"># self.observation_include_x = observation_include_x  # 1694</span>
+        <span class="n">observations</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_t</span><span class="p">:</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">observations</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_action</span><span class="p">:</span>
+            <span class="n">action</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[:</span><span class="mi">4</span><span class="p">]</span>
+            <span class="n">observations</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[</span><span class="mi">4</span><span class="p">:]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_uss</span><span class="p">:</span>
+            <span class="n">uss</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[:</span><span class="mi">4</span><span class="p">]</span>
+            <span class="n">observations</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[</span><span class="mi">4</span><span class="p">:]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_ess</span><span class="p">:</span>
+            <span class="n">yss</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">observations</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_e</span><span class="p">:</span>
+            <span class="n">efactor</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">observations</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_kf</span><span class="p">:</span>
+            <span class="n">kf</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+            <span class="n">observations</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_z</span><span class="p">:</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[:</span><span class="mi">30</span><span class="p">]</span>
+            <span class="n">observations</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[</span><span class="mi">30</span><span class="p">:]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_x</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[:</span><span class="mi">1694</span><span class="p">]</span>
+            <span class="n">observations</span> <span class="o">=</span> <span class="n">observations</span><span class="p">[</span><span class="mi">1694</span><span class="p">:]</span>
+        <span class="c1"># TODO: self.model_preconfig diff from self.model.A, B, C, D, K !!!!!!!!!!</span>
+        <span class="n">uk</span> <span class="o">=</span> <span class="n">atropine_mpc_controller</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">kf</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">N</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Nx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Nu</span><span class="p">,</span>
+            <span class="n">USS</span><span class="p">,</span> <span class="n">INPUT_REFS</span><span class="p">,</span> <span class="n">OUTPUT_REF</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model_preconfig</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_preconfig</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model_preconfig</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_preconfig</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+        <span class="p">)</span> <span class="o">/</span> <span class="mi">1000</span>  <span class="c1"># unscale</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">uss_subtracted</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">uk</span> <span class="o">=</span> <span class="n">uk</span> <span class="o">+</span> <span class="n">USS</span>
+        <span class="k">return</span> <span class="n">uk</span></div></div>
+
+
+<div class="viewcode-block" id="AtropineEnvGym"><a class="viewcode-back" href="../../../atropineenv.html#smpl.envs.atropineenv.AtropineEnvGym">[docs]</a><span class="k">class</span> <span class="nc">AtropineEnvGym</span><span class="p">(</span><span class="n">smplEnvBase</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dense_reward</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">debug_mode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action_dim</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+                 <span class="n">reward_function</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">done_calculator</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">observation_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">action_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">np_dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">max_steps</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
+                 <span class="n">error_reward</span><span class="o">=-</span><span class="mf">100000.0</span><span class="p">,</span>
+                 <span class="n">x0_loc</span><span class="o">=</span><span class="s1">&#39;https://raw.githubusercontent.com/smpl-env/smpl/main/smpl/configdata/atropineenv/x0.txt&#39;</span><span class="p">,</span>
+                 <span class="n">z0_loc</span><span class="o">=</span><span class="s1">&#39;https://raw.githubusercontent.com/smpl-env/smpl/main/smpl/configdata/atropineenv/z0.txt&#39;</span><span class="p">,</span>
+                 <span class="n">model_loc</span><span class="o">=</span><span class="s1">&#39;https://github.com/smpl-env/smpl-experiments/blob/main/configdata/atropineenv/model.npy?raw=true&#39;</span><span class="p">,</span>
+                 <span class="n">uss_subtracted</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reward_on_ess_subtracted</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">reward_on_steady</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">reward_on_absolute_efactor</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">reward_on_actions_penalty</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">reward_on_reject_actions</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">reward_scaler</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+                 <span class="n">relaxed_max_min_actions</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">observation_include_t</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">observation_include_action</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">observation_include_uss</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">observation_include_ess</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">observation_include_e</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">observation_include_kf</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">observation_include_z</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">observation_include_x</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="c1">#  init_mpc_controller=False</span>
+                 <span class="p">):</span>
+        <span class="c1"># define arguments</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_reward</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dense_reward</span> <span class="o">=</span> <span class="n">dense_reward</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="n">normalize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug_mode</span> <span class="o">=</span> <span class="n">debug_mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span> <span class="o">=</span> <span class="n">action_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reward_function</span> <span class="o">=</span> <span class="n">reward_function</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">done_calculator</span> <span class="o">=</span> <span class="n">done_calculator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_name</span> <span class="o">=</span> <span class="n">observation_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">action_name</span> <span class="o">=</span> <span class="n">action_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span> <span class="o">=</span> <span class="n">np_dtype</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">=</span> <span class="n">max_steps</span>  <span class="c1"># note that if self.max_steps == -1 then this simulator runs forever (open-loop).</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span> <span class="o">=</span> <span class="n">error_reward</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reward_function</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reward_function</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reward_function_standard</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">done_calculator</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">done_calculator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">done_calculator_standard</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">uss_subtracted</span> <span class="o">=</span> <span class="n">uss_subtracted</span>  <span class="c1"># we assume that we can see the steady state output during steps. If true, we plus the actions with USS during steps.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reward_on_ess_subtracted</span> <span class="o">=</span> <span class="n">reward_on_ess_subtracted</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reward_on_steady</span> <span class="o">=</span> <span class="n">reward_on_steady</span>  <span class="c1"># whether reward base on Efactor (the small the better) or base on how close it is to the steady e-factor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reward_on_absolute_efactor</span> <span class="o">=</span> <span class="n">reward_on_absolute_efactor</span>  <span class="c1"># whether reward base on absolute Efactor. (is a valid input only if reward_on_steady is False)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reward_on_actions_penalty</span> <span class="o">=</span> <span class="n">reward_on_actions_penalty</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reward_on_reject_actions</span> <span class="o">=</span> <span class="n">reward_on_reject_actions</span>  <span class="c1"># when input actions are larger than max_actions, reject it and end the env immediately.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reward_scaler</span> <span class="o">=</span> <span class="n">reward_scaler</span>  <span class="c1"># a scaler multiplied on rewards to avoid numerical errors. By default, it is 1.0. In our paper, it is 100000.0 (which takes readability into account).</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">relaxed_max_min_actions</span> <span class="o">=</span> <span class="n">relaxed_max_min_actions</span>  <span class="c1"># assume uss_subtracted = false.</span>
+
+        <span class="c1"># now, select what to include during observations. by default we should have format like </span>
+        <span class="c1"># USS1, USS2, USS3, USS4, U1, U2, U3, U4, ESS, E, KF_X1, KF_X2, Z1, Z2, ..., Z30</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_t</span> <span class="o">=</span> <span class="n">observation_include_t</span>  <span class="c1"># 1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_action</span> <span class="o">=</span> <span class="n">observation_include_action</span>  <span class="c1"># 4</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_uss</span> <span class="o">=</span> <span class="n">observation_include_uss</span>  <span class="c1"># 4</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_ess</span> <span class="o">=</span> <span class="n">observation_include_ess</span>  <span class="c1"># yss, 1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_e</span> <span class="o">=</span> <span class="n">observation_include_e</span>  <span class="c1"># y, efactor, 1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_kf</span> <span class="o">=</span> <span class="n">observation_include_kf</span>  <span class="c1"># after kalman filter, 2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_z</span> <span class="o">=</span> <span class="n">observation_include_z</span>  <span class="c1"># 30</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_x</span> <span class="o">=</span> <span class="n">observation_include_x</span>  <span class="c1"># 1694</span>
+
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">x0_loc</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">x0_loc</span><span class="p">)</span>
+            <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">content</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">x0_loc</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x0</span> <span class="o">=</span> <span class="n">x0_loc</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">x0_loc</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">x0_loc</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;x0_loc must be a string, list or a numpy array&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">z0_loc</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">z0_loc</span><span class="p">)</span>
+            <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">z0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">loadtxt</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">content</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">z0_loc</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">z0</span> <span class="o">=</span> <span class="n">z0_loc</span>
+        <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">z0_loc</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">z0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">z0_loc</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;z0_loc must be a string, list or a numpy array&quot;</span><span class="p">)</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">model_loc</span><span class="p">)</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_preconfig</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">content</span><span class="p">),</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># for a fixed batch.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ur</span> <span class="o">=</span> <span class="n">INPUT_REFS</span>  <span class="c1"># reference inputs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">yr</span> <span class="o">=</span> <span class="n">OUTPUT_REF</span>  <span class="c1"># reference output</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_sim</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">SIM_TIME</span> <span class="o">/</span> <span class="n">dt</span><span class="p">)</span>  <span class="c1"># SIM_TIME/ 400 hours as fixed batch.</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_dim</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_t</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_action</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_uss</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_ess</span> <span class="o">+</span> \
+                               <span class="mi">1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_e</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_kf</span> <span class="o">+</span> <span class="mi">30</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_z</span> <span class="o">+</span> <span class="mi">1694</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_x</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">observation_name</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;o_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observation_dim</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">action_name</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;a_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span><span class="p">)]</span>
+
+        <span class="n">max_observations</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_t</span><span class="p">:</span>
+            <span class="n">max_observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="mf">100.0</span><span class="p">)</span>  <span class="c1"># by convention</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_action</span><span class="p">:</span>
+            <span class="n">max_observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1.0</span><span class="p">)</span>  <span class="c1"># by convention</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_uss</span><span class="p">:</span>
+            <span class="n">max_observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span><span class="p">)</span>  <span class="c1"># from dataset</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_ess</span><span class="p">:</span>
+            <span class="n">max_observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="mf">15.0</span><span class="p">)</span>  <span class="c1"># from dataset</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_e</span><span class="p">:</span>
+            <span class="n">max_observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="mf">20.0</span><span class="p">)</span>  <span class="c1"># from dataset</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_kf</span><span class="p">:</span>
+            <span class="n">max_observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="mf">5.0</span><span class="p">)</span>  <span class="c1"># from dataset</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_z</span><span class="p">:</span>
+            <span class="n">max_observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.5</span><span class="p">)</span>  <span class="c1"># by convention</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_x</span><span class="p">:</span>
+            <span class="n">max_observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1694</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="mf">50.0</span><span class="p">)</span>  <span class="c1"># by convention</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">max_observations</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;observations must contain something! Need at least one array to concatenate&quot;</span><span class="p">)</span>
+        <span class="n">min_observations</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_t</span><span class="p">:</span>
+            <span class="n">min_observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.0</span><span class="p">)</span>  <span class="c1"># by convention</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_action</span><span class="p">:</span>
+            <span class="n">min_observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.0</span><span class="p">)</span>  <span class="c1"># by convention</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_uss</span><span class="p">:</span>
+            <span class="n">min_observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.0</span><span class="p">)</span>  <span class="c1"># from dataset</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_ess</span><span class="p">:</span>
+            <span class="n">min_observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.0</span><span class="p">)</span>  <span class="c1"># from dataset</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_e</span><span class="p">:</span>
+            <span class="n">min_observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.0</span><span class="p">)</span>  <span class="c1"># from dataset</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_kf</span><span class="p">:</span>
+            <span class="n">min_observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="o">-</span><span class="mf">5.0</span><span class="p">)</span>  <span class="c1"># from dataset</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_z</span><span class="p">:</span>
+            <span class="n">min_observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.0</span><span class="p">)</span>  <span class="c1"># by convention</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_x</span><span class="p">:</span>
+            <span class="n">min_observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1694</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.0</span><span class="p">)</span>  <span class="c1"># by convention                       </span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">min_observations</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;observations must contain something! Need at least one array to concatenate&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">uss_subtracted</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.408</span><span class="p">,</span> <span class="mf">0.125</span><span class="p">,</span> <span class="mf">0.392</span><span class="p">,</span> <span class="mf">0.214</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>  <span class="c1"># from dataset</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.4075</span><span class="p">,</span> <span class="mf">0.105</span><span class="p">,</span> <span class="mf">0.387</span><span class="p">,</span> <span class="mf">0.208</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>  <span class="c1"># from dataset</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">relaxed_max_min_actions</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>  <span class="c1"># from dataset</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>  <span class="c1"># from dataset</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">1.92476206e-05</span><span class="p">,</span> <span class="mf">1.22118426e-02</span><span class="p">,</span> <span class="mf">1.82154982e-03</span><span class="p">,</span> <span class="mf">3.59729230e-04</span><span class="p">],</span>
+                                        <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>  <span class="c1"># from dataset</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">0.00015742</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.00146234</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.00021812</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.00300454</span><span class="p">],</span>
+                                        <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>  <span class="c1"># from dataset</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">relaxed_max_min_actions</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">2.0e-05</span><span class="p">,</span> <span class="mf">1.3e-02</span><span class="p">,</span> <span class="mf">2.0e-03</span><span class="p">,</span> <span class="mf">4.0e-04</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>  <span class="c1"># from dataset</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">0.00016</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.0015</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.00022</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.00301</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>  <span class="c1"># from dataset</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">observation_space</span> <span class="o">=</span> <span class="n">spaces</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">low</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observation_dim</span><span class="p">,))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">action_space</span> <span class="o">=</span> <span class="n">spaces</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">low</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span><span class="p">,))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">observation_space</span> <span class="o">=</span> <span class="n">spaces</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span>
+                                                <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observation_dim</span><span class="p">,))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">action_space</span> <span class="o">=</span> <span class="n">spaces</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span><span class="p">,))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">plant</span> <span class="o">=</span> <span class="n">Plant</span><span class="p">(</span><span class="n">ND1</span><span class="p">,</span> <span class="n">ND2</span><span class="p">,</span> <span class="n">ND3</span><span class="p">,</span> <span class="n">V1</span><span class="p">,</span> <span class="n">V2</span><span class="p">,</span> <span class="n">V3</span><span class="p">,</span> <span class="n">V4</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">yss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">calculate_Efactor</span><span class="p">(</span><span class="n">DM</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">z0</span><span class="p">))</span>  <span class="c1"># steady state output, e-factor</span>
+
+<div class="viewcode-block" id="AtropineEnvGym.sample_initial_state"><a class="viewcode-back" href="../../../atropineenv.html#smpl.envs.atropineenv.AtropineEnvGym.sample_initial_state">[docs]</a>    <span class="k">def</span> <span class="nf">sample_initial_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">no_sample</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">lower_bound</span><span class="o">=</span><span class="mf">0.99</span><span class="p">,</span> <span class="n">upper_bound</span><span class="o">=</span><span class="mf">1.01</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">no_sample</span><span class="p">:</span>
+            <span class="n">x0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x0_c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x0</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span>
+                <span class="mf">1e-30</span><span class="p">)</span>  <span class="c1"># treat all negative concentration values as numerical error and set to close to zero to avoid numerical issues.</span>
+            <span class="n">low</span> <span class="o">=</span> <span class="n">x0_c</span> <span class="o">*</span> <span class="n">lower_bound</span>
+            <span class="n">up</span> <span class="o">=</span> <span class="n">x0_c</span> <span class="o">*</span> <span class="n">upper_bound</span>
+            <span class="n">x0</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="p">,</span> <span class="n">up</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zk</span> <span class="o">=</span> <span class="n">DM</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">z0</span><span class="p">)</span>  <span class="c1"># shape is (30,)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">mix_and_get_initial_condition</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">USS</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># shape is (1694,)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">previous_efactor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">yss</span>  <span class="c1"># steady state output, e-factor, the small the better</span>
+        <span class="n">observations</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_t</span><span class="p">:</span>
+            <span class="n">observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>  <span class="c1"># since initial state should have self.step_count = 0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_action</span><span class="p">:</span>
+            <span class="n">observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_uss</span><span class="p">:</span>
+            <span class="n">observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">USS</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_ess</span><span class="p">:</span>
+            <span class="n">observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">yss</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_e</span><span class="p">:</span>
+            <span class="n">observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">previous_efactor</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_kf</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">xe</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.001</span>
+            <span class="n">observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xe</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_z</span><span class="p">:</span>
+            <span class="n">observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">zk</span><span class="o">.</span><span class="n">full</span><span class="p">()</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_x</span><span class="p">:</span>
+            <span class="n">observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xk</span><span class="o">.</span><span class="n">full</span><span class="p">()</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">observation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">observations</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;observations must contain something! Need at least one array to concatenate&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">observation</span></div>
+
+<div class="viewcode-block" id="AtropineEnvGym.reset"><a class="viewcode-back" href="../../../atropineenv.html#smpl.envs.atropineenv.AtropineEnvGym.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">initial_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Required by gym, this function resets the environment and returns an initial observation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_reward</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="n">initial_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">initial_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">initial_state</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+            <span class="n">observation</span> <span class="o">=</span> <span class="n">initial_state</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">init_observation</span> <span class="o">=</span> <span class="n">initial_state</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">observation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_initial_state</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">init_observation</span> <span class="o">=</span> <span class="n">observation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">previous_observation</span> <span class="o">=</span> <span class="n">observation</span>
+
+        <span class="c1"># TOMODIFY: reset your environment here.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">U</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># inputs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Y</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">normalize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="k">if</span> <span class="n">normalize</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">normalize</span>
+        <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+            <span class="n">observation</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">normalize_spaces</span><span class="p">(</span><span class="n">observation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">observation</span></div>
+
+<div class="viewcode-block" id="AtropineEnvGym.reward_function_standard"><a class="viewcode-back" href="../../../atropineenv.html#smpl.envs.atropineenv.AtropineEnvGym.reward_function_standard">[docs]</a>    <span class="k">def</span> <span class="nf">reward_function_standard</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">previous_observation</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">current_observation</span><span class="p">,</span> <span class="n">reward</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;the s, a, r, s, a calculation.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            previous_observation ([np.ndarray]): This is denormalized observation, as usual.</span>
+<span class="sd">            action ([np.ndarray]): This is denormalized action, as usual.</span>
+<span class="sd">            current_observation ([np.ndarray]): This is denormalized observation, as usual.</span>
+<span class="sd">            reward ([float]): If reward is provided, directly return the reward.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            [float]: reward.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_beyond_box</span><span class="p">(</span><span class="n">current_observation</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_beyond_box</span><span class="p">(</span><span class="n">action</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span>
+        <span class="k">elif</span> <span class="n">reward</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># TOMODIFY: insert your own reward function here.</span>
+            <span class="n">reward</span> <span class="o">=</span> <span class="n">reward</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">reward_scaler</span>
+
+        <span class="n">reward</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span><span class="p">,</span> <span class="n">reward</span><span class="p">)</span>  <span class="c1"># reward cannot be smaller than the error_reward</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug_mode</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;reward:&quot;</span><span class="p">,</span> <span class="n">reward</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">reward</span></div>
+
+<div class="viewcode-block" id="AtropineEnvGym.done_calculator_standard"><a class="viewcode-back" href="../../../atropineenv.html#smpl.envs.atropineenv.AtropineEnvGym.done_calculator_standard">[docs]</a>    <span class="k">def</span> <span class="nf">done_calculator_standard</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_observation</span><span class="p">,</span> <span class="n">step_count</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">done_info</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;check whether the current episode is considered finished.</span>
+<span class="sd">            returns a boolean value indicated done or not, and a dictionary with information.</span>
+<span class="sd">            here in done_calculator_standard, done_info looks like {&quot;terminal&quot;: boolean, &quot;timeout&quot;: boolean},</span>
+<span class="sd">            where &quot;timeout&quot; is true when episode end due to reaching the maximum episode length,</span>
+<span class="sd">            &quot;terminal&quot; is true when &quot;timeout&quot; or episode end due to termination conditions such as env error encountered. (basically done)</span>
+<span class="sd">            </span>
+<span class="sd">        Args:</span>
+<span class="sd">            current_observation ([np.ndarray]): This is denormalized observation, as usual.</span>
+<span class="sd">            step_count ([int]): step_count.</span>
+<span class="sd">            reward ([float]): reward.</span>
+<span class="sd">            done ([bool], optional): Defaults to None.</span>
+<span class="sd">            done_info ([dict], optional): how the environment is finished. Defaults to None.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            [(float, dict)]: done and done_info.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">done</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">done_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">done</span><span class="p">,</span> <span class="n">done_info</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;When done is given, done_info should also be given.&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">done_info</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">done_info</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;terminal&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;timeout&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;terminal&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;timeout&quot;</span><span class="p">]:</span>
+                <span class="n">done</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">return</span> <span class="n">done</span><span class="p">,</span> <span class="n">done_info</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_beyond_box</span><span class="p">(</span><span class="n">current_observation</span><span class="p">):</span>
+            <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;terminal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">done</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">reward</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span><span class="p">:</span>
+            <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;terminal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">done</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">step_count</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>  <span class="c1"># same as range(0, max_steps)</span>
+            <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;terminal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;timeout&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">done</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">return</span> <span class="n">done</span><span class="p">,</span> <span class="n">done_info</span></div>
+
+    <span class="k">def</span> <span class="nf">_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Required by gym, his function performs one step within the environment and returns the observation, the reward, whether the episode is finished and debug information, if any.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug_mode</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;action:&quot;</span><span class="p">,</span> <span class="n">action</span><span class="p">)</span>
+        <span class="n">reward</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">done</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">done_info</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;terminal&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;timeout&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+        <span class="n">action</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+        <span class="n">normalize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="k">if</span> <span class="n">normalize</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">normalize</span>
+        <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+            <span class="n">action</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">denormalize_spaces</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span><span class="p">)</span>
+
+        <span class="c1"># TOMODIFY: proceed your environment here and collect the observation. The observation should be a numpy array.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">uss_subtracted</span><span class="p">:</span>
+            <span class="n">uk</span> <span class="o">=</span> <span class="n">action</span>
+            <span class="n">uk_p_USS</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">action</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">USS</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">action</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">USS</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">action</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">USS</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                <span class="n">action</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="n">USS</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+            <span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">uk</span> <span class="o">=</span> <span class="n">action</span>
+            <span class="n">uk_p_USS</span> <span class="o">=</span> <span class="n">action</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">U</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">uk_p_USS</span><span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">xnext</span><span class="p">,</span> <span class="n">znext</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">simulate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">zk</span><span class="p">,</span> <span class="n">uk_p_USS</span><span class="p">)</span>
+        <span class="n">efactor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plant</span><span class="o">.</span><span class="n">calculate_Efactor</span><span class="p">(</span><span class="n">znext</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">efactor</span><span class="p">)</span>
+        <span class="c1"># ---- reward calculation here, to avoid large if statements. ----</span>
+        <span class="n">reward_on_steady</span> <span class="o">=</span> <span class="o">-</span><span class="nb">abs</span><span class="p">(</span><span class="n">efactor</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">yss</span><span class="p">)</span>
+        <span class="n">reward_on_absolute_efactor</span> <span class="o">=</span> <span class="o">-</span><span class="nb">abs</span><span class="p">(</span><span class="n">efactor</span><span class="p">)</span>
+        <span class="n">reward_on_efactor_diff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">previous_efactor</span> <span class="o">-</span> <span class="n">efactor</span>
+        <span class="n">previous_efactor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">previous_efactor</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reward_on_ess_subtracted</span><span class="p">:</span>
+            <span class="n">reward</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">yss</span> <span class="o">-</span> <span class="n">efactor</span>  <span class="c1"># efactor the smaller the better</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">reward_on_steady</span><span class="p">:</span>
+            <span class="n">reward</span> <span class="o">=</span> <span class="n">reward_on_steady</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reward_on_absolute_efactor</span><span class="p">:</span>
+                <span class="n">reward</span> <span class="o">=</span> <span class="n">reward_on_absolute_efactor</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">reward</span> <span class="o">=</span> <span class="n">reward_on_efactor_diff</span>
+        <span class="n">reward</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">action</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">reward_on_actions_penalty</span><span class="p">,</span> <span class="nb">ord</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="c1"># ---- reward calculation here, to avoid large if statements. ----</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">previous_efactor</span> <span class="o">=</span> <span class="n">efactor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xk</span> <span class="o">=</span> <span class="n">xnext</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zk</span> <span class="o">=</span> <span class="n">znext</span>
+        <span class="n">observations</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_t</span><span class="p">:</span>
+            <span class="n">observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">step_count</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_action</span><span class="p">:</span>
+            <span class="n">observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_uss</span><span class="p">:</span>
+            <span class="n">observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">USS</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_ess</span><span class="p">:</span>
+            <span class="n">observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">yss</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_e</span><span class="p">:</span>
+            <span class="n">observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">previous_efactor</span><span class="p">],</span>
+                                         <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>  <span class="c1"># !!!!!!!also, shall I run a step here? how do we align?</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_kf</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">xe</span> <span class="o">=</span> <span class="n">state_estimator</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">xe</span><span class="p">,</span> <span class="n">uk</span><span class="p">,</span> <span class="n">efactor</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">yss</span><span class="p">,</span>  <span class="c1"># self.Xhat[k] is previous step xe</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model_preconfig</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_preconfig</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model_preconfig</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_preconfig</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xe</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_z</span><span class="p">:</span>
+            <span class="n">observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">zk</span><span class="o">.</span><span class="n">full</span><span class="p">()</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_include_x</span><span class="p">:</span>
+            <span class="n">observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">xk</span><span class="o">.</span><span class="n">full</span><span class="p">()</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">observation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">observations</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;observations must contain something! Need at least one array to concatenate&quot;</span><span class="p">)</span>
+
+        <span class="n">observation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">observation</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+        <span class="c1"># compute reward</span>
+        <span class="n">reward</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reward_function</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">previous_observation</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">observation</span><span class="p">,</span> <span class="n">reward</span><span class="o">=</span><span class="n">reward</span><span class="p">)</span>
+        <span class="c1"># compute done</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">done</span><span class="p">:</span>
+            <span class="n">done</span><span class="p">,</span> <span class="n">done_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">done_calculator</span><span class="p">(</span><span class="n">observation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_count</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span><span class="o">=</span><span class="n">done</span><span class="p">,</span> <span class="n">done_info</span><span class="o">=</span><span class="n">done_info</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">previous_observation</span> <span class="o">=</span> <span class="n">observation</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_reward</span> <span class="o">+=</span> <span class="n">reward</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dense_reward</span><span class="p">:</span>
+            <span class="n">reward</span> <span class="o">=</span> <span class="n">reward</span>  <span class="c1"># conventional</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">done</span><span class="p">:</span>
+            <span class="n">reward</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">reward</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_reward</span>
+        <span class="c1"># clip observation so that it won&#39;t be beyond the box</span>
+        <span class="n">observation</span> <span class="o">=</span> <span class="n">observation</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+            <span class="n">observation</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">normalize_spaces</span><span class="p">(</span><span class="n">observation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;efactor&quot;</span><span class="p">:</span> <span class="n">efactor</span><span class="p">,</span>
+            <span class="s2">&quot;previous_efactor&quot;</span><span class="p">:</span> <span class="n">previous_efactor</span><span class="p">,</span>
+            <span class="s2">&quot;reward_on_steady&quot;</span><span class="p">:</span> <span class="n">reward_on_steady</span><span class="p">,</span>
+            <span class="s2">&quot;reward_on_absolute_efactor&quot;</span><span class="p">:</span> <span class="n">reward_on_absolute_efactor</span><span class="p">,</span>
+            <span class="s2">&quot;reward_on_efactor_diff&quot;</span><span class="p">:</span> <span class="n">reward_on_efactor_diff</span>
+        <span class="p">}</span>
+        <span class="n">info</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">done_info</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">observation</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">info</span>
+
+<div class="viewcode-block" id="AtropineEnvGym.step"><a class="viewcode-back" href="../../../atropineenv.html#smpl.envs.atropineenv.AtropineEnvGym.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_step</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">reward</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span>
+            <span class="n">done</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">done_info</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;terminal&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;timeout&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+            <span class="n">observation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observation_dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="n">info</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;efactor&quot;</span><span class="p">:</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span><span class="p">,</span>
+                <span class="s2">&quot;previous_efactor&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">previous_efactor</span><span class="p">,</span>
+                <span class="s2">&quot;reward_on_steady&quot;</span><span class="p">:</span> <span class="n">reward</span><span class="p">,</span>
+                <span class="s2">&quot;reward_on_absolute_efactor&quot;</span><span class="p">:</span> <span class="n">reward</span><span class="p">,</span>
+                <span class="s2">&quot;reward_on_efactor_diff&quot;</span><span class="p">:</span> <span class="n">reward</span>
+            <span class="p">}</span>
+            <span class="k">return</span> <span class="n">observation</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">info</span></div>
+
+<div class="viewcode-block" id="AtropineEnvGym.plot"><a class="viewcode-back" href="../../../atropineenv.html#smpl.envs.atropineenv.AtropineEnvGym.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">show</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">efactor_fig_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">input_fig_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">target_efactor</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">yss</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">yr</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_sim</span>
+        <span class="n">target_inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">USS</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">ur</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_sim</span>
+        <span class="n">U</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">U</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span>  <span class="c1"># scale the solution to micro Litres</span>
+        <span class="n">target_inputs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">target_inputs</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span>  <span class="c1"># scale the solution to micro Litres</span>
+        <span class="n">local_t</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="o">*</span> <span class="n">dt</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_sim</span><span class="p">)]</span>
+        <span class="c1"># plots</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s2">&quot;all&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">local_t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Y</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Real Output&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">local_t</span><span class="p">,</span> <span class="n">target_efactor</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Steady State Output&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Time [min]&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;E-Factor [A.U.]&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">efactor_fig_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">efactor_fig_name</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+
+        <span class="c1"># create figure (fig), and array of axes (ax)</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">axs</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">nrows</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ncols</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">local_t</span><span class="p">,</span> <span class="n">U</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">where</span><span class="o">=</span><span class="s1">&#39;post&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Real Input&#39;</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">local_t</span><span class="p">,</span> <span class="n">target_inputs</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">where</span><span class="o">=</span><span class="s1">&#39;post&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Steady State Input&#39;</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;U1 [</span><span class="se">\u03bc</span><span class="s1">L/min]&#39;</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;time [min]&#39;</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span>
+
+        <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">local_t</span><span class="p">,</span> <span class="n">U</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">where</span><span class="o">=</span><span class="s1">&#39;post&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Real Input&#39;</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">local_t</span><span class="p">,</span> <span class="n">target_inputs</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">where</span><span class="o">=</span><span class="s1">&#39;post&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Steady State Input&#39;</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;U2 [</span><span class="se">\u03bc</span><span class="s1">L/min]&#39;</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;time [min]&#39;</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span>
+
+        <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">local_t</span><span class="p">,</span> <span class="n">U</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">where</span><span class="o">=</span><span class="s1">&#39;post&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Real Input&#39;</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">local_t</span><span class="p">,</span> <span class="n">target_inputs</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">where</span><span class="o">=</span><span class="s1">&#39;post&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Steady State Input&#39;</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;U3 [</span><span class="se">\u03bc</span><span class="s1">L/min]&#39;</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;time [min]&#39;</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span>
+
+        <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">local_t</span><span class="p">,</span> <span class="n">U</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">where</span><span class="o">=</span><span class="s1">&#39;post&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Real Input&#39;</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">local_t</span><span class="p">,</span> <span class="n">target_inputs</span><span class="p">[:,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">where</span><span class="o">=</span><span class="s1">&#39;post&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Steady State Input&#39;</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39;U4 [</span><span class="se">\u03bc</span><span class="s1">L/min]&#39;</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;time [min]&#39;</span><span class="p">)</span>
+        <span class="n">axs</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">input_fig_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">input_fig_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">show</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="AtropineEnvGym.evalute_algorithms"><a class="viewcode-back" href="../../../atropineenv.html#smpl.envs.atropineenv.AtropineEnvGym.evalute_algorithms">[docs]</a>    <span class="k">def</span> <span class="nf">evalute_algorithms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">algorithms</span><span class="p">,</span> <span class="n">num_episodes</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">error_reward</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">initial_states</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">to_plt</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                           <span class="n">plot_dir</span><span class="o">=</span><span class="s1">&#39;./plt_results&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        when excecuting evalute_algorithms, the self.normalize should be False.</span>
+<span class="sd">        algorithms: list of (algorithm, algorithm_name, normalize). algorithm has to have a method predict(observation) -&gt; action: np.ndarray.</span>
+<span class="sd">        num_episodes: number of episodes to run</span>
+<span class="sd">        error_reward: overwrite self.error_reward</span>
+<span class="sd">        initial_states: None, location of numpy file of initial states or a (numpy) list of initial states</span>
+<span class="sd">        to_plt: whether generates plot or not</span>
+<span class="sd">        plot_dir: None or directory to save plots</span>
+<span class="sd">        returns: list of average_rewards over each episode and num of episodes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="ow">is</span> <span class="kc">False</span>
+        <span class="k">except</span> <span class="ne">AssertionError</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;env.normalize should be False when executing evalute_algorithms&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">error_reward</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span> <span class="o">=</span> <span class="n">error_reward</span>
+        <span class="k">if</span> <span class="n">plot_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mkdir_p</span><span class="p">(</span><span class="n">plot_dir</span><span class="p">)</span>
+        <span class="n">initial_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_initial_states</span><span class="p">(</span><span class="n">initial_states</span><span class="p">,</span> <span class="n">num_episodes</span><span class="p">)</span>
+        <span class="n">observations_list</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">))]</span>  <span class="c1"># observations_list[i][j][t][k] is algorithm_i_game_j_observation_t_element_k</span>
+        <span class="n">actions_list</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span>
+                        <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">))]</span>  <span class="c1"># actions_list[i][j][t][k] is algorithm_i_game_j_action_t_element_k</span>
+        <span class="n">rewards_list</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">))]</span>  <span class="c1"># rewards_list[i][j][t] is algorithm_i_game_j_reward_t</span>
+        <span class="k">for</span> <span class="n">n_epi</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">num_episodes</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">n_algo</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)):</span>
+                <span class="n">algo</span><span class="p">,</span> <span class="n">algo_name</span><span class="p">,</span> <span class="n">normalize</span> <span class="o">=</span> <span class="n">algorithms</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span>
+                <span class="n">algo_observes</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">algo_actions</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">algo_rewards</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># list, for this algorithm, reawards of this trajectory.</span>
+                <span class="n">init_obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">initial_state</span><span class="o">=</span><span class="n">initial_states</span><span class="p">[</span><span class="n">n_epi</span><span class="p">])</span>
+                <span class="c1"># algo_observes.append(init_obs)</span>
+                <span class="n">o</span> <span class="o">=</span> <span class="n">init_obs</span>
+                <span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">while</span> <span class="ow">not</span> <span class="n">done</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+                        <span class="n">o</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">normalize_spaces</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">)</span>
+                    <span class="n">a</span> <span class="o">=</span> <span class="n">algo</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+                        <span class="n">a</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">denormalize_spaces</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span><span class="p">)</span>
+                    <span class="n">algo_actions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+                    <span class="n">o</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+                    <span class="n">algo_observes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
+                    <span class="n">algo_rewards</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+                <span class="n">observations_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">algo_observes</span><span class="p">)</span>
+                <span class="n">actions_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">algo_actions</span><span class="p">)</span>
+                <span class="n">rewards_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">algo_rewards</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">to_plt</span><span class="p">:</span>
+                <span class="c1"># plot observations</span>
+                <span class="k">for</span> <span class="n">n_o</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observation_dim</span><span class="p">):</span>
+                    <span class="n">o_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_name</span><span class="p">[</span><span class="n">n_o</span><span class="p">]</span>
+
+                    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s2">&quot;all&quot;</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">o_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">n_algo</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)):</span>
+                        <span class="n">alpha</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.7</span> <span class="o">**</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">n_algo</span><span class="p">))</span>
+                        <span class="n">_</span><span class="p">,</span> <span class="n">algo_name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">algorithms</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span>
+                        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">observations_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">])[:,</span> <span class="n">n_o</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="n">algo_name</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">initial_states</span><span class="p">[</span><span class="n">n_epi</span><span class="p">][</span><span class="n">n_o</span><span class="p">]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span><span class="p">)],</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span>
+                             <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;initial_</span><span class="si">{</span><span class="n">o_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="c1"># plt.plot([self.steady_observations[n_o] for _ in range(self.max_steps)], linestyle=&quot;-.&quot;,</span>
+                    <span class="c1">#          label=f&quot;steady_{o_name}&quot;) # add back when we confirm steady_observations yss+</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">initial_states</span><span class="p">[</span><span class="n">n_epi</span><span class="p">][</span><span class="n">n_o</span><span class="p">]),</span> <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">initial_states</span><span class="p">[</span><span class="n">n_epi</span><span class="p">][</span><span class="n">n_o</span><span class="p">]))</span>
+                    <span class="c1"># plt.annotate(str(self.steady_observations[n_o]), xy=(0, self.steady_observations[n_o])) # add back when we confirm steady_observations</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">plot_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">path_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">plot_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n_epi</span><span class="si">}</span><span class="s2">_observation_</span><span class="si">{</span><span class="n">o_name</span><span class="si">}</span><span class="s2">.png&quot;</span><span class="p">)</span>
+                        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">path_name</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+                <span class="c1"># plot actions</span>
+                <span class="k">for</span> <span class="n">n_a</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span><span class="p">):</span>
+                    <span class="n">a_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_name</span><span class="p">[</span><span class="n">n_a</span><span class="p">]</span>
+
+                    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s2">&quot;all&quot;</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">a_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">n_algo</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)):</span>
+                        <span class="n">alpha</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.7</span> <span class="o">**</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">n_algo</span><span class="p">))</span>
+                        <span class="n">_</span><span class="p">,</span> <span class="n">algo_name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">algorithms</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span>
+                        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">actions_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">])[:,</span> <span class="n">n_a</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="n">algo_name</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">)</span>
+                    <span class="c1"># plt.plot([self.steady_actions[n_a] for _ in range(self.max_steps)], linestyle=&quot;-.&quot;,</span>
+                    <span class="c1">#          label=f&quot;steady_{a_name}&quot;) # add back when we confirm steady_actions USS+</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">plot_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">path_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">plot_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n_epi</span><span class="si">}</span><span class="s2">_action_</span><span class="si">{</span><span class="n">a_name</span><span class="si">}</span><span class="s2">.png&quot;</span><span class="p">)</span>
+                        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">path_name</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+                <span class="c1"># plot rewards</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s2">&quot;all&quot;</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;reward&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">n_algo</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)):</span>
+                    <span class="n">alpha</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.7</span> <span class="o">**</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">n_algo</span><span class="p">))</span>
+                    <span class="n">_</span><span class="p">,</span> <span class="n">algo_name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">algorithms</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">rewards_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">label</span><span class="o">=</span><span class="n">algo_name</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">plot_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">path_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">plot_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n_epi</span><span class="si">}</span><span class="s2">_reward.png&quot;</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">path_name</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="n">observations_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">observations_list</span><span class="p">)</span>
+        <span class="n">actions_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">actions_list</span><span class="p">)</span>
+        <span class="n">rewards_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">rewards_list</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">observations_list</span><span class="p">,</span> <span class="n">actions_list</span><span class="p">,</span> <span class="n">rewards_list</span></div>
+        <span class="c1"># /---- standard ----</span>
+
+<div class="viewcode-block" id="AtropineEnvGym.evaluate_rewards_mean_std_over_episodes"><a class="viewcode-back" href="../../../atropineenv.html#smpl.envs.atropineenv.AtropineEnvGym.evaluate_rewards_mean_std_over_episodes">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_rewards_mean_std_over_episodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">algorithms</span><span class="p">,</span> <span class="n">num_episodes</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">error_reward</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                                <span class="n">initial_states</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">to_plt</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">plot_dir</span><span class="o">=</span><span class="s1">&#39;./plt_results&#39;</span><span class="p">,</span>
+                                                <span class="n">computer_on_episodes</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns: mean and std of rewards over all episodes.</span>
+<span class="sd">        since the rewards_list is not aligned (e.g. some trajectories are shorter than the others), so we cannot directly convert it to numpy array.</span>
+<span class="sd">        we have to convert and unwrap the nested list.</span>
+<span class="sd">        if computer_on_episodes, we first average the rewards_list over episodes, then compute the mean and std.</span>
+<span class="sd">        else, we directly compute the mean and std for each step.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">observations_list</span><span class="p">,</span> <span class="n">actions_list</span><span class="p">,</span> <span class="n">rewards_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">evalute_algorithms</span><span class="p">(</span><span class="n">algorithms</span><span class="p">,</span> <span class="n">num_episodes</span><span class="o">=</span><span class="n">num_episodes</span><span class="p">,</span>
+                                                                                <span class="n">error_reward</span><span class="o">=</span><span class="n">error_reward</span><span class="p">,</span>
+                                                                                <span class="n">initial_states</span><span class="o">=</span><span class="n">initial_states</span><span class="p">,</span>
+                                                                                <span class="n">to_plt</span><span class="o">=</span><span class="n">to_plt</span><span class="p">,</span> <span class="n">plot_dir</span><span class="o">=</span><span class="n">plot_dir</span><span class="p">)</span>
+        <span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
+        <span class="n">warn</span><span class="p">(</span><span class="s1">&#39;The function evaluate_rewards_mean_std_over_episodes is deprecated. Please use report_rewards.&#39;</span><span class="p">,</span>
+             <span class="ne">DeprecationWarning</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">n_algo</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)):</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">algo_name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">algorithms</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span>
+            <span class="n">rewards_list_curr_algo</span> <span class="o">=</span> <span class="n">rewards_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">computer_on_episodes</span><span class="p">:</span>
+                <span class="n">rewards_mean_over_episodes</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># rewards_mean_over_episodes[n_epi] is mean of rewards of n_epi</span>
+                <span class="k">for</span> <span class="n">n_epi</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_episodes</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">rewards_list_curr_algo</span><span class="p">[</span><span class="n">n_epi</span><span class="p">][</span>
+                        <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span><span class="p">:</span>  <span class="c1"># if error_reward is provided, self.error_reward is overwritten in self.evalute_algorithms</span>
+                        <span class="n">rewards_mean_over_episodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">rewards_mean_over_episodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">rewards_list_curr_algo</span><span class="p">[</span><span class="n">n_epi</span><span class="p">]))</span>
+                <span class="n">rewards_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">rewards_mean_over_episodes</span><span class="p">)</span>
+                <span class="n">rewards_std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">rewards_mean_over_episodes</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">unwrap_list</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">games_r_list</span> <span class="ow">in</span> <span class="n">rewards_list_curr_algo</span><span class="p">:</span>
+                    <span class="n">unwrap_list</span> <span class="o">+=</span> <span class="n">games_r_list</span>
+                <span class="n">rewards_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">unwrap_list</span><span class="p">)</span>
+                <span class="n">rewards_std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">unwrap_list</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">algo_name</span><span class="si">}</span><span class="s2">_reward_mean: </span><span class="si">{</span><span class="n">rewards_mean</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">result_dict</span><span class="p">[</span><span class="n">algo_name</span> <span class="o">+</span> <span class="s2">&quot;_reward_mean&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rewards_mean</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">algo_name</span><span class="si">}</span><span class="s2">_reward_std: </span><span class="si">{</span><span class="n">rewards_std</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">result_dict</span><span class="p">[</span><span class="n">algo_name</span> <span class="o">+</span> <span class="s2">&quot;_reward_std&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rewards_std</span>
+        <span class="k">if</span> <span class="n">plot_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">f_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">plot_dir</span><span class="p">,</span> <span class="s1">&#39;result.json&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f_dir</span> <span class="o">=</span> <span class="s1">&#39;result.json&#39;</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">result_dict</span><span class="p">,</span> <span class="nb">open</span><span class="p">(</span><span class="n">f_dir</span><span class="p">,</span> <span class="s1">&#39;w+&#39;</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">observations_list</span><span class="p">,</span> <span class="n">actions_list</span><span class="p">,</span> <span class="n">rewards_list</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, SMPL Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

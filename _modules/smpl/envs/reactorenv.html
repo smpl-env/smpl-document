@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>smpl.envs.reactorenv &mdash; smpl latest documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> smpl
+          </a>
+              <div class="version">
+                latest
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../reactorenv.html">ReactorEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../atropineenv.html">AtropineEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pensimenv.html">PenSimEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../beerfmtenv.html">BeerFMTEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../mabenv.html">MAbEnv</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/smpl.envs.html">smpl.envs package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">smpl</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>smpl.envs.reactorenv</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for smpl.envs.reactorenv</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">ReactorEnv simulates a general reactor environment. This is supposed to be an template environment. The documentations in that file is enhanced and provided comment lines (# ---- standard ---- and # /---- standard ----) enclose pieces of code that should be reused by most of smpl environments. Please consult the smplEnvBase class.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="c1"># ---- to capture numpy warnings ----</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">mpctools</span> <span class="k">as</span> <span class="nn">mpc</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">gym</span> <span class="kn">import</span> <span class="n">spaces</span><span class="p">,</span> <span class="n">Env</span>  <span class="c1"># to create an openai-gym environment https://gym.openai.com/</span>
+<span class="kn">from</span> <span class="nn">mzutils</span> <span class="kn">import</span> <span class="n">SimplePriorityQueue</span>
+<span class="kn">from</span> <span class="nn">scipy.integrate</span> <span class="kn">import</span> <span class="n">solve_ivp</span>  <span class="c1"># the ode solver</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">np</span><span class="o">.</span><span class="n">seterr</span><span class="p">(</span><span class="nb">all</span><span class="o">=</span><span class="s1">&#39;warn&#39;</span><span class="p">)</span>
+<span class="c1"># ---- to capture numpy warnings ---- </span>
+
+
+<span class="c1"># macros the defined by the reactor</span>
+<span class="n">MAX_OBSERVATIONS</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]</span>  <span class="c1"># cA, T, h</span>
+<span class="n">MIN_OBSERVATIONS</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1e-08</span><span class="p">,</span> <span class="mf">1e-08</span><span class="p">,</span> <span class="mf">1e-08</span><span class="p">]</span>
+<span class="n">MAX_ACTIONS</span> <span class="o">=</span> <span class="p">[</span><span class="mf">35.0</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">]</span>  <span class="c1"># Tc, qout</span>
+<span class="n">MIN_ACTIONS</span> <span class="o">=</span> <span class="p">[</span><span class="mf">15.0</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">]</span>
+<span class="n">STEADY_OBSERVATIONS</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.8778252</span><span class="p">,</span> <span class="mf">51.34660837</span><span class="p">,</span> <span class="mf">0.659</span><span class="p">]</span>
+<span class="n">STEADY_ACTIONS</span> <span class="o">=</span> <span class="p">[</span><span class="mf">26.85</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">]</span>
+<span class="n">ERROR_REWARD</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1000.0</span>
+
+
+<div class="viewcode-block" id="ReactorPID"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorPID">[docs]</a><span class="k">class</span> <span class="nc">ReactorPID</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;a simple proportional controller that utilizes the config of this environment.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        [type]: action.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Kis</span><span class="p">,</span> <span class="n">steady_state</span><span class="o">=</span><span class="p">[</span><span class="mf">0.8778252</span><span class="p">,</span> <span class="mf">0.659</span><span class="p">],</span> <span class="n">steady_action</span><span class="o">=</span><span class="p">[</span><span class="mf">26.85</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">],</span> <span class="n">min_action</span><span class="o">=</span><span class="p">[</span><span class="mf">15.0</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">],</span>
+                 <span class="n">max_action</span><span class="o">=</span><span class="p">[</span><span class="mf">35.0</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">]):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Kis</span> <span class="o">=</span> <span class="n">Kis</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">steady_state</span> <span class="o">=</span> <span class="n">steady_state</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">steady_action</span> <span class="o">=</span> <span class="n">steady_action</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">len_c</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">steady_action</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_action</span> <span class="o">=</span> <span class="n">min_action</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_action</span> <span class="o">=</span> <span class="n">max_action</span>
+
+<div class="viewcode-block" id="ReactorPID.predict"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorPID.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="p">[</span><span class="n">state</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">state</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span>
+        <span class="n">action</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">len_c</span><span class="p">):</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Kis</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">steady_state</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">steady_action</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">action</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_action</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_action</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">action</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ReactorMPC"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorMPC">[docs]</a><span class="k">class</span> <span class="nc">ReactorMPC</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;a simple MPC controller.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        [type]: action.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Nt</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">dt</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">Q</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">R</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">P</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.1</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Nt</span> <span class="o">=</span> <span class="n">Nt</span>  <span class="c1"># control and prediction horizons</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dt</span> <span class="o">=</span> <span class="n">dt</span>  <span class="c1"># sampling time. Should be the same as the step size in the model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Q</span> <span class="o">=</span> <span class="n">Q</span>  <span class="c1"># weight on the state variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">R</span> <span class="o">=</span> <span class="n">R</span>  <span class="c1"># weight on the input variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">P</span> <span class="o">=</span> <span class="n">P</span>  <span class="c1"># terminal cost weight (optional). set to zero matrix with appropriate dimension</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Nx</span> <span class="o">=</span> <span class="mi">3</span>  <span class="c1"># number of state variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Nu</span> <span class="o">=</span> <span class="mi">2</span>  <span class="c1"># number of input variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_action</span> <span class="o">=</span> <span class="p">[</span><span class="mf">15.0</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_action</span> <span class="o">=</span> <span class="p">[</span><span class="mf">35.0</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">]</span>
+
+        <span class="c1"># reactor model</span>
+        <span class="kn">from</span> <span class="nn">smpl.envs.reactorenv</span> <span class="kn">import</span> <span class="n">ReactorModel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">ReactorModel</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">xs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.8778252</span><span class="p">,</span> <span class="mf">51.34660837</span><span class="p">,</span> <span class="mf">0.659</span><span class="p">])</span>  <span class="c1"># steady-state state values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">us</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">26.85</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">])</span>  <span class="c1"># steady state input values</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">build_controller</span><span class="p">()</span>
+
+    <span class="c1"># Define stage cost</span>
+<div class="viewcode-block" id="ReactorMPC.lfunc"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorMPC.lfunc">[docs]</a>    <span class="k">def</span> <span class="nf">lfunc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">):</span>
+        <span class="n">dx</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">Nx</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">xs</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">Nx</span><span class="p">]</span>
+        <span class="n">du</span> <span class="o">=</span> <span class="n">u</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">Nu</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">us</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">Nu</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">mpc</span><span class="o">.</span><span class="n">mtimes</span><span class="p">(</span><span class="n">dx</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Q</span><span class="p">,</span> <span class="n">dx</span><span class="p">)</span> <span class="o">+</span> <span class="n">mpc</span><span class="o">.</span><span class="n">mtimes</span><span class="p">(</span><span class="n">du</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">R</span><span class="p">,</span> <span class="n">du</span><span class="p">)</span></div>
+
+    <span class="c1"># define terminal weight</span>
+<div class="viewcode-block" id="ReactorMPC.Pffunc"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorMPC.Pffunc">[docs]</a>    <span class="k">def</span> <span class="nf">Pffunc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">dx</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">Nx</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">xs</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">Nx</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">mpc</span><span class="o">.</span><span class="n">mtimes</span><span class="p">(</span><span class="n">dx</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">P</span><span class="p">,</span> <span class="n">dx</span><span class="p">)</span></div>
+
+    <span class="c1"># build the mpc controller using mpctools</span>
+<div class="viewcode-block" id="ReactorMPC.build_controller"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorMPC.build_controller">[docs]</a>    <span class="k">def</span> <span class="nf">build_controller</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># stage and terminal cost in casadi symbolic form</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="n">mpc</span><span class="o">.</span><span class="n">getCasadiFunc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lfunc</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">Nx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Nu</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;u&quot;</span><span class="p">],</span> <span class="n">funcname</span><span class="o">=</span><span class="s2">&quot;l&quot;</span><span class="p">)</span>
+        <span class="n">Pf</span> <span class="o">=</span> <span class="n">mpc</span><span class="o">.</span><span class="n">getCasadiFunc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Pffunc</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">Nx</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">],</span> <span class="n">funcname</span><span class="o">=</span><span class="s2">&quot;Pf&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Create casadi function/model to be used in the controller</span>
+        <span class="n">ode_casadi</span> <span class="o">=</span> <span class="n">mpc</span><span class="o">.</span><span class="n">getCasadiFunc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">ode</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">Nx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Nu</span><span class="p">],</span> <span class="p">[</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;u&quot;</span><span class="p">],</span> <span class="n">funcname</span><span class="o">=</span><span class="s2">&quot;odef&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Set c to a value greater than one to use collocation</span>
+        <span class="n">contargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">N</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;t&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">Nt</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">Nx</span><span class="p">,</span> <span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">Nu</span><span class="p">,</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+            <span class="n">verbosity</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>  <span class="c1"># set verbosity to a number &gt; 0 for debugging purposes otherwise use 0.</span>
+            <span class="n">l</span><span class="o">=</span><span class="n">l</span><span class="p">,</span>
+            <span class="n">x0</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">xs</span><span class="p">,</span>
+            <span class="n">Pf</span><span class="o">=</span><span class="n">Pf</span><span class="p">,</span>
+            <span class="n">ub</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_action</span><span class="p">},</span>  <span class="c1"># Change upper bounds</span>
+            <span class="n">lb</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_action</span><span class="p">},</span>  <span class="c1"># Change lower bounds</span>
+            <span class="n">guess</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">&quot;x&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">xs</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">Nx</span><span class="p">],</span>
+                <span class="s2">&quot;u&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">us</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">Nu</span><span class="p">]</span>
+            <span class="p">},</span>
+        <span class="p">)</span>
+
+        <span class="c1"># create MPC controller</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpc</span> <span class="o">=</span> <span class="n">mpc</span><span class="o">.</span><span class="n">nmpc</span><span class="p">(</span><span class="n">f</span><span class="o">=</span><span class="n">ode_casadi</span><span class="p">,</span> <span class="n">Delta</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dt</span><span class="p">,</span> <span class="o">**</span><span class="n">contargs</span><span class="p">)</span></div>
+
+    <span class="c1"># solve mpc optimization problem at one time step</span>
+<div class="viewcode-block" id="ReactorMPC.predict"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorMPC.predict">[docs]</a>    <span class="k">def</span> <span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="c1"># Update intial condition and solve control problem.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpc</span><span class="o">.</span><span class="n">fixvar</span><span class="p">(</span><span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>  <span class="c1"># Set initial value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mpc</span><span class="o">.</span><span class="n">solve</span><span class="p">()</span>  <span class="c1"># solve optimal control problem</span>
+        <span class="n">uopt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mpc</span><span class="o">.</span><span class="n">var</span><span class="p">[</span><span class="s2">&quot;u&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>  <span class="c1"># take the first optimal input solution</span>
+
+        <span class="c1"># if successful, save solution as initial guess for the next optimization problem</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mpc</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;Solve_Succeeded&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mpc</span><span class="o">.</span><span class="n">saveguess</span><span class="p">()</span>
+
+        <span class="c1"># return solution status and optimal input</span>
+        <span class="k">return</span> <span class="n">uopt</span></div></div>
+
+
+<div class="viewcode-block" id="ReactorMLPReinforceAgent"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorMLPReinforceAgent">[docs]</a><span class="k">class</span> <span class="nc">ReactorMLPReinforceAgent</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;a simple torch-MLP based rl agent,.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        [type]: Can either return a sampled action or the distribution the action sampled from.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obs_dim</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">act_dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">hidden_size</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ReactorMLPReinforceAgent</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="n">log_std</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">act_dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_std</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">log_std</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mu_net</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">obs_dim</span><span class="p">,</span> <span class="n">hidden_size</span><span class="p">),</span>
+                                          <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+                                          <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_size</span><span class="p">,</span> <span class="n">act_dim</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+
+<div class="viewcode-block" id="ReactorMLPReinforceAgent.forward"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorMLPReinforceAgent.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obs</span><span class="p">,</span> <span class="n">return_distribution</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">mu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mu_net</span><span class="p">(</span><span class="n">obs</span><span class="p">)</span>
+        <span class="n">std</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_std</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_std</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1e-4</span><span class="p">)</span>
+        <span class="n">dist</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributions</span><span class="o">.</span><span class="n">normal</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">std</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">return_distribution</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">dist</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">action</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">dist</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">100</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">])</span>  <span class="c1"># clip actions</span>
+            <span class="k">return</span> <span class="n">action</span></div></div>
+
+
+<div class="viewcode-block" id="ReactorModel"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorModel">[docs]</a><span class="k">class</span> <span class="nc">ReactorModel</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sampling_time</span><span class="p">):</span>
+        <span class="c1"># Define reactor model parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">q_in</span> <span class="o">=</span> <span class="mf">.1</span>  <span class="c1"># m^3/min</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Tf</span> <span class="o">=</span> <span class="mf">76.85</span>  <span class="c1"># degrees C</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cAf</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># kmol/m^3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">r</span> <span class="o">=</span> <span class="mf">.219</span>  <span class="c1"># m</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">k0</span> <span class="o">=</span> <span class="mf">7.2e10</span>  <span class="c1"># min^-1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">E_divided_by_R</span> <span class="o">=</span> <span class="mi">8750</span>  <span class="c1"># K</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">U</span> <span class="o">=</span> <span class="mf">54.94</span>  <span class="c1"># kg/min/m^2/K</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">=</span> <span class="mi">1000</span>  <span class="c1"># kg/m^3</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Cp</span> <span class="o">=</span> <span class="mf">.239</span>  <span class="c1"># kJ/kg/K</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dH</span> <span class="o">=</span> <span class="o">-</span><span class="mf">5e4</span>  <span class="c1"># kJ/kmol</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">Nx</span> <span class="o">=</span> <span class="mi">3</span>  <span class="c1"># Number of state variables</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Nu</span> <span class="o">=</span> <span class="mi">2</span>  <span class="c1"># Number of input variables</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">sampling_time</span> <span class="o">=</span> <span class="n">sampling_time</span>  <span class="c1"># sampling time or integration step</span>
+
+    <span class="c1"># Ordinary Differential Equations (ODEs) described in the report i.e. Equations (1), (2), (3)</span>
+<div class="viewcode-block" id="ReactorModel.ode"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorModel.ode">[docs]</a>    <span class="k">def</span> <span class="nf">ode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">):</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># c_A</span>
+        <span class="n">T</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># T</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>  <span class="c1"># h</span>
+        <span class="n">Tc</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># Tc</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">u</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># q_out</span>
+
+        <span class="n">rate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k0</span> <span class="o">*</span> <span class="n">c</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">E_divided_by_R</span> <span class="o">/</span> <span class="p">(</span><span class="n">T</span> <span class="o">+</span> <span class="mf">273.15</span><span class="p">))</span>  <span class="c1"># kmol/m^3/min</span>
+
+        <span class="n">dxdt</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">q_in</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cAf</span> <span class="o">-</span> <span class="n">c</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">r</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">h</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span> <span class="o">-</span> <span class="n">rate</span><span class="p">,</span>  <span class="c1"># kmol/m^3/min</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">q_in</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Tf</span> <span class="o">-</span> <span class="n">T</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">r</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">h</span> <span class="o">+</span> <span class="mf">1e-8</span><span class="p">)</span>
+            <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">dH</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">Cp</span><span class="p">)</span> <span class="o">*</span> <span class="n">rate</span>
+            <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">U</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">r</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">rho</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">Cp</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">Tc</span> <span class="o">-</span> <span class="n">T</span><span class="p">),</span>  <span class="c1"># degree C/min</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">q_in</span> <span class="o">-</span> <span class="n">q</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">r</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># m/min</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">dxdt</span></div>
+
+    <span class="c1"># integrates one sampling time or time step and returns the next state</span>
+<div class="viewcode-block" id="ReactorModel.step"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorModel.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">):</span>
+        <span class="c1"># return self.simulator.sim(x,u)</span>
+        <span class="n">sol</span> <span class="o">=</span> <span class="n">solve_ivp</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ode</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">u</span><span class="p">),</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sampling_time</span><span class="p">],</span> <span class="n">x</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">u</span><span class="p">,),</span> <span class="n">method</span><span class="o">=</span><span class="s1">&#39;LSODA&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sol</span><span class="o">.</span><span class="n">y</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span></div></div>
+
+
+<div class="viewcode-block" id="ReactorEnvGym"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorEnvGym">[docs]</a><span class="k">class</span> <span class="nc">ReactorEnvGym</span><span class="p">(</span><span class="n">smplEnvBase</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dense_reward</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">debug_mode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action_dim</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">observation_dim</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+                 <span class="n">reward_function</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">done_calculator</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_observations</span><span class="o">=</span><span class="n">MAX_OBSERVATIONS</span><span class="p">,</span>
+                 <span class="n">min_observations</span><span class="o">=</span><span class="n">MIN_OBSERVATIONS</span><span class="p">,</span> <span class="n">max_actions</span><span class="o">=</span><span class="n">MAX_ACTIONS</span><span class="p">,</span> <span class="n">min_actions</span><span class="o">=</span><span class="n">MIN_ACTIONS</span><span class="p">,</span>
+                 <span class="n">error_reward</span><span class="o">=</span><span class="n">ERROR_REWARD</span><span class="p">,</span>  <span class="c1"># general env inputs</span>
+                 <span class="n">initial_state_deviation_ratio</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">compute_diffs_on_reward</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">np_dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+                 <span class="n">sampling_time</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">max_steps</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+        <span class="c1"># ---- standard ----</span>
+        <span class="c1"># define arguments</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_reward</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dense_reward</span> <span class="o">=</span> <span class="n">dense_reward</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="n">normalize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug_mode</span> <span class="o">=</span> <span class="n">debug_mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span> <span class="o">=</span> <span class="n">action_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_dim</span> <span class="o">=</span> <span class="n">observation_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reward_function</span> <span class="o">=</span> <span class="n">reward_function</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">done_calculator</span> <span class="o">=</span> <span class="n">done_calculator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span> <span class="o">=</span> <span class="n">max_observations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span> <span class="o">=</span> <span class="n">min_observations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span> <span class="o">=</span> <span class="n">max_actions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span> <span class="o">=</span> <span class="n">min_actions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span> <span class="o">=</span> <span class="n">error_reward</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reward_function</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reward_function</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reward_function_standard</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">done_calculator</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">done_calculator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">done_calculator_standard</span>
+        <span class="c1"># /---- standard ----</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">compute_diffs_on_reward</span> <span class="o">=</span> <span class="n">compute_diffs_on_reward</span>  <span class="c1"># how the reward is computed, if True, then the reward is computed as the difference between the current state and the previous state</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span> <span class="o">=</span> <span class="n">np_dtype</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sampling_time</span> <span class="o">=</span> <span class="n">sampling_time</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">=</span> <span class="n">max_steps</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_name</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;cA&quot;</span><span class="p">,</span> <span class="s2">&quot;T&quot;</span><span class="p">,</span> <span class="s2">&quot;h&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">action_name</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Tc&quot;</span><span class="p">,</span> <span class="s2">&quot;qout&quot;</span><span class="p">]</span>
+
+        <span class="c1"># ---- standard ----</span>
+        <span class="c1"># define the state and action spaces</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">observation_space</span> <span class="o">=</span> <span class="n">spaces</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">low</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observation_dim</span><span class="p">,))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">action_space</span> <span class="o">=</span> <span class="n">spaces</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">low</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span><span class="p">,))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">observation_space</span> <span class="o">=</span> <span class="n">spaces</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span>
+                                                <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observation_dim</span><span class="p">,))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">action_space</span> <span class="o">=</span> <span class="n">spaces</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span><span class="p">,))</span>
+        <span class="c1"># /---- standard ----</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">steady_observations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">STEADY_OBSERVATIONS</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>  <span class="c1"># cA, T, h</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">steady_actions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">STEADY_ACTIONS</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>  <span class="c1"># Tc, qout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initial_state_deviation_ratio</span> <span class="o">=</span> <span class="n">initial_state_deviation_ratio</span>
+
+<div class="viewcode-block" id="ReactorEnvGym.reward_function_standard"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorEnvGym.reward_function_standard">[docs]</a>    <span class="k">def</span> <span class="nf">reward_function_standard</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">previous_observation</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">current_observation</span><span class="p">,</span> <span class="n">reward</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># ---- standard ----</span>
+        <span class="c1"># s, a, r, s, a</span>
+        <span class="k">if</span> <span class="n">reward</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">reward</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_beyond_box</span><span class="p">(</span><span class="n">current_observation</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_beyond_box</span><span class="p">(</span><span class="n">action</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span>
+        <span class="c1"># /---- standard ----</span>
+        <span class="n">current_observation_evaluated</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">evaluate_observation</span><span class="p">(</span><span class="n">current_observation</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">current_observation_evaluated</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_diffs_on_reward</span><span class="p">:</span>
+            <span class="n">previous_observation_evaluated</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">evaluate_observation</span><span class="p">(</span><span class="n">previous_observation</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">previous_observation_evaluated</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+            <span class="n">reward</span> <span class="o">=</span> <span class="n">current_observation_evaluated</span> <span class="o">-</span> <span class="n">previous_observation_evaluated</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">reward</span> <span class="o">=</span> <span class="n">current_observation_evaluated</span>
+        <span class="c1"># ---- standard ----</span>
+        <span class="n">reward</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span><span class="p">,</span> <span class="n">reward</span><span class="p">)</span>  <span class="c1"># reward cannot be smaller than the error_reward</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug_mode</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;reward:&quot;</span><span class="p">,</span> <span class="n">reward</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">reward</span></div>
+        <span class="c1"># /---- standard ----</span>
+
+<div class="viewcode-block" id="ReactorEnvGym.reset"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorEnvGym.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">initial_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># ---- standard ----</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        required by gym.</span>
+<span class="sd">        This function resets the environment and returns an initial observation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_reward</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="n">initial_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">initial_state</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">initial_state</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+            <span class="n">observation</span> <span class="o">=</span> <span class="n">initial_state</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">init_observation</span> <span class="o">=</span> <span class="n">initial_state</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">observation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_initial_state</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">init_observation</span> <span class="o">=</span> <span class="n">observation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">previous_observation</span> <span class="o">=</span> <span class="n">observation</span>
+        <span class="c1"># /---- standard ----</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reactor</span> <span class="o">=</span> <span class="n">ReactorModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sampling_time</span><span class="p">)</span>
+
+        <span class="c1"># ---- standard ----</span>
+        <span class="n">normalize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="k">if</span> <span class="n">normalize</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">normalize</span>
+        <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+            <span class="n">observation</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">normalize_spaces</span><span class="p">(</span><span class="n">observation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">observation</span></div>
+        <span class="c1"># /---- standard ----</span>
+
+<div class="viewcode-block" id="ReactorEnvGym.step"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorEnvGym.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># ---- standard ----</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        required by gym.</span>
+<span class="sd">        This function performs one step within the environment and returns the observation, the reward, whether the episode is finished and debug information, if any.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug_mode</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;action:&quot;</span><span class="p">,</span> <span class="n">action</span><span class="p">)</span>
+        <span class="n">reward</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">done</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">done_info</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;terminal&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;timeout&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+        <span class="n">action</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+        <span class="n">normalize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="k">if</span> <span class="n">normalize</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">normalize</span>
+        <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+            <span class="n">action</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">denormalize_spaces</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span><span class="p">)</span>
+        <span class="c1"># /---- standard ----</span>
+
+        <span class="c1"># ---- to capture numpy warnings ---- </span>
+        <span class="k">with</span> <span class="n">warnings</span><span class="o">.</span><span class="n">catch_warnings</span><span class="p">(</span><span class="n">record</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">w</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">simplefilter</span><span class="p">(</span><span class="s2">&quot;error&quot;</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">observation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reactor</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">previous_observation</span><span class="p">,</span> <span class="n">action</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Got Exception/Warning: &quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+                <span class="n">observation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">previous_observation</span>
+                <span class="n">reward</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span>
+                <span class="n">done</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">done_info</span><span class="p">[</span><span class="s2">&quot;terminal&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># /---- to capture numpy warnings ---- </span>
+
+        <span class="c1"># ---- standard ----</span>
+        <span class="c1"># compute reward</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">reward</span><span class="p">:</span>
+            <span class="n">reward</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reward_function</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">previous_observation</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">observation</span><span class="p">,</span> <span class="n">reward</span><span class="o">=</span><span class="n">reward</span><span class="p">)</span>
+        <span class="c1"># compute done</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">done</span><span class="p">:</span>
+            <span class="n">done</span><span class="p">,</span> <span class="n">done_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">done_calculator</span><span class="p">(</span><span class="n">observation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_count</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span><span class="o">=</span><span class="n">done</span><span class="p">,</span> <span class="n">done_info</span><span class="o">=</span><span class="n">done_info</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">previous_observation</span> <span class="o">=</span> <span class="n">observation</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_reward</span> <span class="o">+=</span> <span class="n">reward</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dense_reward</span><span class="p">:</span>
+            <span class="n">reward</span> <span class="o">=</span> <span class="n">reward</span>  <span class="c1"># conventional</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">done</span><span class="p">:</span>
+            <span class="n">reward</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">reward</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_reward</span>
+        <span class="c1"># clip observation so that it won&#39;t be beyond the box</span>
+        <span class="n">observation</span> <span class="o">=</span> <span class="n">observation</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+            <span class="n">observation</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">normalize_spaces</span><span class="p">(</span><span class="n">observation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">info</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">done_info</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">observation</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">info</span></div>
+        <span class="c1"># /---- standard ----</span>
+
+<div class="viewcode-block" id="ReactorEnvGym.evenly_spread_initial_states"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorEnvGym.evenly_spread_initial_states">[docs]</a>    <span class="k">def</span> <span class="nf">evenly_spread_initial_states</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val_per_state</span><span class="p">,</span> <span class="n">dump_location</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Evenly spread initial states.</span>
+<span class="sd">        This function is needed only if the environment has steady_observations. </span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            val_per_state (int): how many values to sampler per state.</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">        [initial_states]: evenly spread initial_states.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">initial_state_deviation_ratio</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_state_deviation_ratio</span>
+        <span class="n">steady_observations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">steady_observations</span>
+        <span class="n">len_obs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">steady_observations</span><span class="p">)</span>
+        <span class="n">val_range</span> <span class="o">=</span> <span class="n">val_per_state</span> <span class="o">**</span> <span class="n">len_obs</span>
+        <span class="n">initial_states</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">val_range</span><span class="p">,</span> <span class="n">len_obs</span><span class="p">])</span>
+        <span class="n">tmp_o</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">oi</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">len_obs</span><span class="p">):</span>
+            <span class="n">tmp_o</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">steady_observations</span><span class="p">[</span><span class="n">oi</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">initial_state_deviation_ratio</span><span class="p">),</span>
+                                     <span class="n">steady_observations</span><span class="p">[</span><span class="n">oi</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">initial_state_deviation_ratio</span><span class="p">),</span> <span class="n">num</span><span class="o">=</span><span class="n">val_per_state</span><span class="p">,</span>
+                                     <span class="n">endpoint</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">val_range</span><span class="p">):</span>
+            <span class="n">tmp_val_range</span> <span class="o">=</span> <span class="n">i</span>
+            <span class="n">curr_val</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">oi</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">len_obs</span><span class="p">):</span>
+                <span class="n">rmder</span> <span class="o">=</span> <span class="n">tmp_val_range</span> <span class="o">%</span> <span class="n">val_per_state</span>
+                <span class="n">curr_val</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp_o</span><span class="p">[</span><span class="n">oi</span><span class="p">][</span><span class="n">rmder</span><span class="p">])</span>
+                <span class="n">tmp_val_range</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">tmp_val_range</span> <span class="o">-</span> <span class="n">rmder</span><span class="p">)</span> <span class="o">/</span> <span class="n">val_per_state</span><span class="p">)</span>
+            <span class="n">initial_states</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">curr_val</span>
+        <span class="k">if</span> <span class="n">dump_location</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">dump_location</span><span class="p">,</span> <span class="n">initial_states</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">initial_states</span></div>
+
+    <span class="c1"># ---- standard ----</span>
+<div class="viewcode-block" id="ReactorEnvGym.evalute_algorithms"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorEnvGym.evalute_algorithms">[docs]</a>    <span class="k">def</span> <span class="nf">evalute_algorithms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">algorithms</span><span class="p">,</span> <span class="n">num_episodes</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">error_reward</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">initial_states</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">to_plt</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                           <span class="n">plot_dir</span><span class="o">=</span><span class="s1">&#39;./plt_results&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        when excecuting evalute_algorithms, the self.normalize should be False.</span>
+<span class="sd">        algorithms: list of (algorithm, algorithm_name, normalize). algorithm has to have a method predict(observation) -&gt; action: np.ndarray.</span>
+<span class="sd">        num_episodes: number of episodes to run</span>
+<span class="sd">        error_reward: overwrite self.error_reward</span>
+<span class="sd">        initial_states: None, location of numpy file of initial states or a (numpy) list of initial states</span>
+<span class="sd">        to_plt: whether generates plot or not</span>
+<span class="sd">        plot_dir: None or directory to save plots</span>
+<span class="sd">        returns: list of average_rewards over each episode and num of episodes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="ow">is</span> <span class="kc">False</span>
+        <span class="k">except</span> <span class="ne">AssertionError</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;env.normalize should be False when executing evalute_algorithms&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="n">error_reward</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span> <span class="o">=</span> <span class="n">error_reward</span>
+        <span class="k">if</span> <span class="n">plot_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mkdir_p</span><span class="p">(</span><span class="n">plot_dir</span><span class="p">)</span>
+        <span class="n">initial_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_initial_states</span><span class="p">(</span><span class="n">initial_states</span><span class="p">,</span> <span class="n">num_episodes</span><span class="p">)</span>
+        <span class="n">observations_list</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">))]</span>  <span class="c1"># observations_list[i][j][t][k] is algorithm_i_game_j_observation_t_element_k</span>
+        <span class="n">actions_list</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span>
+                        <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">))]</span>  <span class="c1"># actions_list[i][j][t][k] is algorithm_i_game_j_action_t_element_k</span>
+        <span class="n">rewards_list</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">))]</span>  <span class="c1"># rewards_list[i][j][t] is algorithm_i_game_j_reward_t</span>
+        <span class="k">for</span> <span class="n">n_epi</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">num_episodes</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">n_algo</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)):</span>
+                <span class="n">algo</span><span class="p">,</span> <span class="n">algo_name</span><span class="p">,</span> <span class="n">normalize</span> <span class="o">=</span> <span class="n">algorithms</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span>
+                <span class="n">algo_observes</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">algo_actions</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">algo_rewards</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># list, for this algorithm, reawards of this trajectory.</span>
+                <span class="n">init_obs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">initial_state</span><span class="o">=</span><span class="n">initial_states</span><span class="p">[</span><span class="n">n_epi</span><span class="p">])</span>
+                <span class="c1"># algo_observes.append(init_obs)</span>
+                <span class="n">o</span> <span class="o">=</span> <span class="n">init_obs</span>
+                <span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">while</span> <span class="ow">not</span> <span class="n">done</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+                        <span class="n">o</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">normalize_spaces</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">)</span>
+                    <span class="n">a</span> <span class="o">=</span> <span class="n">algo</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+                        <span class="n">a</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">denormalize_spaces</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span><span class="p">)</span>
+                    <span class="n">algo_actions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+                    <span class="n">o</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+                    <span class="n">algo_observes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
+                    <span class="n">algo_rewards</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+                <span class="n">observations_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">algo_observes</span><span class="p">)</span>
+                <span class="n">actions_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">algo_actions</span><span class="p">)</span>
+                <span class="n">rewards_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">algo_rewards</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">to_plt</span><span class="p">:</span>
+                <span class="c1"># plot observations</span>
+                <span class="k">for</span> <span class="n">n_o</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observation_dim</span><span class="p">):</span>
+                    <span class="n">o_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_name</span><span class="p">[</span><span class="n">n_o</span><span class="p">]</span>
+
+                    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s2">&quot;all&quot;</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">o_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">n_algo</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)):</span>
+                        <span class="n">alpha</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.7</span> <span class="o">**</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">n_algo</span><span class="p">))</span>
+                        <span class="n">_</span><span class="p">,</span> <span class="n">algo_name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">algorithms</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span>
+                        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">observations_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">])[:,</span> <span class="n">n_o</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="n">algo_name</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="n">initial_states</span><span class="p">[</span><span class="n">n_epi</span><span class="p">][</span><span class="n">n_o</span><span class="p">]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span><span class="p">)],</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span>
+                             <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;initial_</span><span class="si">{</span><span class="n">o_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">steady_observations</span><span class="p">[</span><span class="n">n_o</span><span class="p">]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span><span class="p">)],</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;-.&quot;</span><span class="p">,</span>
+                             <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;steady_</span><span class="si">{</span><span class="n">o_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">initial_states</span><span class="p">[</span><span class="n">n_epi</span><span class="p">][</span><span class="n">n_o</span><span class="p">]),</span> <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">initial_states</span><span class="p">[</span><span class="n">n_epi</span><span class="p">][</span><span class="n">n_o</span><span class="p">]))</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">steady_observations</span><span class="p">[</span><span class="n">n_o</span><span class="p">]),</span> <span class="n">xy</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">steady_observations</span><span class="p">[</span><span class="n">n_o</span><span class="p">]))</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">plot_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">path_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">plot_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n_epi</span><span class="si">}</span><span class="s2">_observation_</span><span class="si">{</span><span class="n">o_name</span><span class="si">}</span><span class="s2">.png&quot;</span><span class="p">)</span>
+                        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">path_name</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+                <span class="c1"># plot actions</span>
+                <span class="k">for</span> <span class="n">n_a</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span><span class="p">):</span>
+                    <span class="n">a_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_name</span><span class="p">[</span><span class="n">n_a</span><span class="p">]</span>
+
+                    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s2">&quot;all&quot;</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">a_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">n_algo</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)):</span>
+                        <span class="n">alpha</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.7</span> <span class="o">**</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">n_algo</span><span class="p">))</span>
+                        <span class="n">_</span><span class="p">,</span> <span class="n">algo_name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">algorithms</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span>
+                        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">actions_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">])[:,</span> <span class="n">n_a</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="n">algo_name</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">steady_actions</span><span class="p">[</span><span class="n">n_a</span><span class="p">]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span><span class="p">)],</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;-.&quot;</span><span class="p">,</span>
+                             <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;steady_</span><span class="si">{</span><span class="n">a_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">plot_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">path_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">plot_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n_epi</span><span class="si">}</span><span class="s2">_action_</span><span class="si">{</span><span class="n">a_name</span><span class="si">}</span><span class="s2">.png&quot;</span><span class="p">)</span>
+                        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">path_name</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+                <span class="c1"># plot rewards</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="s2">&quot;all&quot;</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;reward&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">n_algo</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)):</span>
+                    <span class="n">alpha</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.7</span> <span class="o">**</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">n_algo</span><span class="p">))</span>
+                    <span class="n">_</span><span class="p">,</span> <span class="n">algo_name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">algorithms</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">rewards_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">label</span><span class="o">=</span><span class="n">algo_name</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">plot_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">path_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">plot_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n_epi</span><span class="si">}</span><span class="s2">_reward.png&quot;</span><span class="p">)</span>
+                    <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">path_name</span><span class="p">)</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="n">observations_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">observations_list</span><span class="p">)</span>
+        <span class="n">actions_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">actions_list</span><span class="p">)</span>
+        <span class="n">rewards_list</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">rewards_list</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">observations_list</span><span class="p">,</span> <span class="n">actions_list</span><span class="p">,</span> <span class="n">rewards_list</span></div>
+        <span class="c1"># /---- standard ----</span>
+
+<div class="viewcode-block" id="ReactorEnvGym.evaluate_rewards_mean_std_over_episodes"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorEnvGym.evaluate_rewards_mean_std_over_episodes">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_rewards_mean_std_over_episodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">algorithms</span><span class="p">,</span> <span class="n">num_episodes</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">error_reward</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                                <span class="n">initial_states</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">to_plt</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">plot_dir</span><span class="o">=</span><span class="s1">&#39;./plt_results&#39;</span><span class="p">,</span>
+                                                <span class="n">computer_on_episodes</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        returns: mean and std of rewards over all episodes.</span>
+<span class="sd">        since the rewards_list is not aligned (e.g. some trajectories are shorter than the others), so we cannot directly convert it to numpy array.</span>
+<span class="sd">        we have to convert and unwrap the nested list.</span>
+<span class="sd">        if computer_on_episodes, we first average the rewards_list over episodes, then compute the mean and std.</span>
+<span class="sd">        else, we directly compute the mean and std for each step.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">observations_list</span><span class="p">,</span> <span class="n">actions_list</span><span class="p">,</span> <span class="n">rewards_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">evalute_algorithms</span><span class="p">(</span><span class="n">algorithms</span><span class="p">,</span> <span class="n">num_episodes</span><span class="o">=</span><span class="n">num_episodes</span><span class="p">,</span>
+                                                                                <span class="n">error_reward</span><span class="o">=</span><span class="n">error_reward</span><span class="p">,</span>
+                                                                                <span class="n">initial_states</span><span class="o">=</span><span class="n">initial_states</span><span class="p">,</span>
+                                                                                <span class="n">to_plt</span><span class="o">=</span><span class="n">to_plt</span><span class="p">,</span> <span class="n">plot_dir</span><span class="o">=</span><span class="n">plot_dir</span><span class="p">)</span>
+        <span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
+        <span class="n">warn</span><span class="p">(</span><span class="s1">&#39;The function evaluate_rewards_mean_std_over_episodes is deprecated. Please use report_rewards.&#39;</span><span class="p">,</span>
+             <span class="ne">DeprecationWarning</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">n_algo</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)):</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">algo_name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">algorithms</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span>
+            <span class="n">rewards_list_curr_algo</span> <span class="o">=</span> <span class="n">rewards_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">computer_on_episodes</span><span class="p">:</span>
+                <span class="n">rewards_mean_over_episodes</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># rewards_mean_over_episodes[n_epi] is mean of rewards of n_epi</span>
+                <span class="k">for</span> <span class="n">n_epi</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_episodes</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">rewards_list_curr_algo</span><span class="p">[</span><span class="n">n_epi</span><span class="p">][</span>
+                        <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span><span class="p">:</span>  <span class="c1"># if error_reward is provided, self.error_reward is overwritten in self.evalute_algorithms</span>
+                        <span class="n">rewards_mean_over_episodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">rewards_mean_over_episodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">rewards_list_curr_algo</span><span class="p">[</span><span class="n">n_epi</span><span class="p">]))</span>
+                <span class="n">rewards_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">rewards_mean_over_episodes</span><span class="p">)</span>
+                <span class="n">rewards_std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">rewards_mean_over_episodes</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">unwrap_list</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">games_r_list</span> <span class="ow">in</span> <span class="n">rewards_list_curr_algo</span><span class="p">:</span>
+                    <span class="n">unwrap_list</span> <span class="o">+=</span> <span class="n">games_r_list</span>
+                <span class="n">rewards_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">unwrap_list</span><span class="p">)</span>
+                <span class="n">rewards_std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">unwrap_list</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">algo_name</span><span class="si">}</span><span class="s2">_reward_mean: </span><span class="si">{</span><span class="n">rewards_mean</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">result_dict</span><span class="p">[</span><span class="n">algo_name</span> <span class="o">+</span> <span class="s2">&quot;_reward_mean&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rewards_mean</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">algo_name</span><span class="si">}</span><span class="s2">_reward_std: </span><span class="si">{</span><span class="n">rewards_std</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">result_dict</span><span class="p">[</span><span class="n">algo_name</span> <span class="o">+</span> <span class="s2">&quot;_reward_std&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">rewards_std</span>
+        <span class="k">if</span> <span class="n">plot_dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">f_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">plot_dir</span><span class="p">,</span> <span class="s1">&#39;result.json&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f_dir</span> <span class="o">=</span> <span class="s1">&#39;result.json&#39;</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">result_dict</span><span class="p">,</span> <span class="nb">open</span><span class="p">(</span><span class="n">f_dir</span><span class="p">,</span> <span class="s1">&#39;w+&#39;</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">observations_list</span><span class="p">,</span> <span class="n">actions_list</span><span class="p">,</span> <span class="n">rewards_list</span></div>
+
+<div class="viewcode-block" id="ReactorEnvGym.find_outperformances"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorEnvGym.find_outperformances">[docs]</a>    <span class="k">def</span> <span class="nf">find_outperformances</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">algorithms</span><span class="p">,</span> <span class="n">rewards_list</span><span class="p">,</span> <span class="n">initial_states</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        this function computes the outperformances of the last algorithm in algorithms.</span>
+<span class="sd">        there are three criteria:</span>
+<span class="sd">        if in a trajectory, the algorithm has reward &gt;= all other algorithms, the corresponding initial_state is stored to always_better.</span>
+<span class="sd">        if in a trajectory, the algorithm&#39;s mean reward &gt;= threshold + all other algorithms&#39; mean reward, the corresponding initial_state is stored to averagely_better.</span>
+<span class="sd">        for the top_k most outperformed reward mean, the corresponding initial_state is stored to top_k_better, in ascending order.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># rewards_list[i][j][t] is algorithm_i_game_j_reward_t</span>
+        <span class="n">num_episodes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rewards_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">num_algorithms</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">algorithms</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">num_algorithms</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">rewards_list</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">num_algorithms</span> <span class="o">&gt;=</span> <span class="mi">2</span>
+        <span class="n">always_better</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">averagely_better</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">top_k_better</span> <span class="o">=</span> <span class="n">SimplePriorityQueue</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="n">top_k</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">n_epi</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_episodes</span><span class="p">):</span>
+            <span class="n">rewards</span> <span class="o">=</span> <span class="p">[</span><span class="n">rewards_list</span><span class="p">[</span><span class="n">n_algo</span><span class="p">][</span><span class="n">n_epi</span><span class="p">]</span> <span class="k">for</span> <span class="n">n_algo</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_algorithms</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_outperformances_compute_always_better</span><span class="p">(</span><span class="n">rewards</span><span class="p">):</span>
+                <span class="n">always_better</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">initial_states</span><span class="p">[</span><span class="n">n_epi</span><span class="p">])</span>
+            <span class="n">average_outperformance</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">find_outperformances_compute_average_outperformances</span><span class="p">(</span><span class="n">rewards</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">average_outperformance</span> <span class="o">&gt;=</span> <span class="n">threshold</span><span class="p">:</span>
+                <span class="n">averagely_better</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">initial_states</span><span class="p">[</span><span class="n">n_epi</span><span class="p">])</span>
+            <span class="c1"># like indicated here, https://stackoverflow.com/questions/42236820/adding-numpy-array-to-a-heap-queue, inserting numpy array to heapq can be risky.</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">top_k_better</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">average_outperformance</span><span class="p">,</span> <span class="n">initial_states</span><span class="p">[</span><span class="n">n_epi</span><span class="p">]))</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="n">top_k_better</span><span class="o">.</span><span class="n">put</span><span class="p">((</span><span class="n">average_outperformance</span> <span class="o">+</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1e-8</span><span class="p">),</span> <span class="n">initial_states</span><span class="p">[</span><span class="n">n_epi</span><span class="p">]))</span>
+        <span class="n">always_better</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">always_better</span><span class="p">)</span>
+        <span class="n">averagely_better</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">averagely_better</span><span class="p">)</span>
+        <span class="n">top_k_better</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">top_k_better</span><span class="o">.</span><span class="n">nlargest</span><span class="p">(</span><span class="n">top_k</span><span class="p">)])</span>
+        <span class="k">return</span> <span class="n">always_better</span><span class="p">,</span> <span class="n">averagely_better</span><span class="p">,</span> <span class="n">top_k_better</span></div>
+
+<div class="viewcode-block" id="ReactorEnvGym.find_outperformances_compute_always_better"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorEnvGym.find_outperformances_compute_always_better">[docs]</a>    <span class="k">def</span> <span class="nf">find_outperformances_compute_always_better</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rewards</span><span class="p">):</span>
+        <span class="n">num_algorithms</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rewards</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rewards</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])):</span>
+            <span class="k">for</span> <span class="n">n_algo</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_algorithms</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">rewards</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">t</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">rewards</span><span class="p">[</span><span class="n">n_algo</span><span class="p">][</span><span class="n">t</span><span class="p">]:</span>
+                        <span class="k">return</span> <span class="kc">False</span>
+                <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+                    <span class="c1"># some algorithms might finish the trajectory earlier.</span>
+                    <span class="k">pass</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="ReactorEnvGym.find_outperformances_compute_average_outperformances"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorEnvGym.find_outperformances_compute_average_outperformances">[docs]</a>    <span class="k">def</span> <span class="nf">find_outperformances_compute_average_outperformances</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rewards</span><span class="p">):</span>
+        <span class="n">num_algorithms</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rewards</span><span class="p">)</span>
+        <span class="n">average_rewards</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">n_algo</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_algorithms</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">rewards</span><span class="p">[</span><span class="n">n_algo</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span><span class="p">:</span>
+                <span class="n">average_rewards</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">average_rewards</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">rewards</span><span class="p">[</span><span class="n">n_algo</span><span class="p">]))</span>
+        <span class="n">outperformances</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># we can hereby use just a scalar, but to reuse the code further for other criteria, we use a list.</span>
+        <span class="c1"># E.g. in the future we can add a random walk algorithm as our baseline to compare the relative improvement with.</span>
+        <span class="k">for</span> <span class="n">n_algo</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_algorithms</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">outperformances</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">average_rewards</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">average_rewards</span><span class="p">[</span><span class="n">n_algo</span><span class="p">])</span> <span class="o">/</span> <span class="mf">1.0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">outperformances</span></div>
+
+<div class="viewcode-block" id="ReactorEnvGym.sample_initial_state"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorEnvGym.sample_initial_state">[docs]</a>    <span class="k">def</span> <span class="nf">sample_initial_state</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">init_observation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_state_deviation_ratio</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">steady_observations</span><span class="p">,</span>
+                              <span class="n">high</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_state_deviation_ratio</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">steady_observations</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+        <span class="n">init_observation</span> <span class="o">=</span> <span class="n">init_observation</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">init_observation</span></div>
+
+<div class="viewcode-block" id="ReactorEnvGym.evaluate_observation"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorEnvGym.evaluate_observation">[docs]</a>    <span class="k">def</span> <span class="nf">evaluate_observation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">observation</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        observation: numpy array of shape (self.observation_dim)</span>
+<span class="sd">        returns: observation evaluation (reward in a sense)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="o">-</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">((</span><span class="n">observation</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">steady_observations</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">init_observation</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">steady_observations</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">,</span> <span class="mf">1e-8</span><span class="p">))))</span></div>
+
+<div class="viewcode-block" id="ReactorEnvGym.generate_dataset_with_algorithm"><a class="viewcode-back" href="../../../reactorenv.html#smpl.envs.reactorenv.ReactorEnvGym.generate_dataset_with_algorithm">[docs]</a>    <span class="k">def</span> <span class="nf">generate_dataset_with_algorithm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">algorithm</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_episodes</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">error_reward</span><span class="o">=-</span><span class="mf">1000.0</span><span class="p">,</span>
+                                        <span class="n">initial_states</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;d4rl&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        this function aims to create a dataset for offline reinforcement learning, in either d4rl or pytorch format.</span>
+<span class="sd">        the trajectories are generated by the algorithm, which interacts with this env initialized by initial_states.</span>
+<span class="sd">        algorithm: an instance that has a method predict(observation) -&gt; action: np.ndarray.</span>
+<span class="sd">        if format == &#39;d4rl&#39;, returns a dictionary in d4rl format.</span>
+<span class="sd">        else if format == &#39;torch&#39;, returns an object of type torch.utils.data.Dataset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">normalize</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">normalize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span>
+        <span class="n">initial_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_initial_states</span><span class="p">(</span><span class="n">initial_states</span><span class="p">,</span> <span class="n">num_episodes</span><span class="p">)</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;observations&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;actions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;rewards&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;terminals&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;timeouts&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">n_epi</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">num_episodes</span><span class="p">)):</span>
+            <span class="n">o</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">(</span><span class="n">initial_state</span><span class="o">=</span><span class="n">initial_states</span><span class="p">[</span><span class="n">n_epi</span><span class="p">])</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">timeout</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">final_done</span> <span class="o">=</span> <span class="kc">False</span>  <span class="c1"># to still record for the last t when done</span>
+            <span class="k">while</span> <span class="ow">not</span> <span class="n">final_done</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">done</span><span class="p">:</span>
+                    <span class="n">final_done</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="c1"># tmp_o is to be normalized, if normalize is true.</span>
+                <span class="n">tmp_o</span> <span class="o">=</span> <span class="n">o</span>
+                <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+                    <span class="n">tmp_o</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">normalize_spaces</span><span class="p">(</span><span class="n">tmp_o</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">)</span>
+                <span class="n">a</span> <span class="o">=</span> <span class="n">algorithm</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">tmp_o</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+                    <span class="n">a</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">denormalize_spaces</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span><span class="p">)</span>
+                <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;observations&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">o</span><span class="p">)</span>
+                <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;actions&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+                <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;rewards&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+                <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;terminals&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">done</span><span class="p">)</span>
+                <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;timeouts&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">timeout</span><span class="p">)</span>
+
+                <span class="n">o</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+                <span class="n">timeout</span> <span class="o">=</span> <span class="n">info</span><span class="p">[</span><span class="s1">&#39;timeout&#39;</span><span class="p">]</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;observations&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;observations&quot;</span><span class="p">])</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;actions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;actions&quot;</span><span class="p">])</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;rewards&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;rewards&quot;</span><span class="p">])</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;terminals&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;terminals&quot;</span><span class="p">])</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;timeouts&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;timeouts&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">format</span> <span class="o">==</span> <span class="s1">&#39;d4rl&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">dataset</span>
+        <span class="k">elif</span> <span class="nb">format</span> <span class="o">==</span> <span class="s1">&#39;torch&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">TorchDatasetFromD4RL</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;format </span><span class="si">{</span><span class="nb">format</span><span class="si">}</span><span class="s2"> is not supported.&quot;</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, SMPL Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

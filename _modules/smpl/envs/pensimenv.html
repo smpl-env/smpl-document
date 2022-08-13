@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>smpl.envs.pensimenv &mdash; smpl latest documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> smpl
+          </a>
+              <div class="version">
+                latest
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../reactorenv.html">ReactorEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../atropineenv.html">AtropineEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../pensimenv.html">PenSimEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../beerfmtenv.html">BeerFMTEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../mabenv.html">MAbEnv</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/smpl.envs.html">smpl.envs package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">smpl</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>smpl.envs.pensimenv</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for smpl.envs.pensimenv</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">codecs</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">gym</span> <span class="kn">import</span> <span class="n">spaces</span><span class="p">,</span> <span class="n">Env</span>
+<span class="kn">from</span> <span class="nn">mzutils</span> <span class="kn">import</span> <span class="n">get_things_in_loc</span>
+<span class="kn">from</span> <span class="nn">pensimpy.peni_env_setup</span> <span class="kn">import</span> <span class="n">PenSimEnv</span>
+
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="n">csv</span><span class="o">.</span><span class="n">field_size_limit</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">maxsize</span><span class="p">)</span>
+<span class="n">MINUTES_PER_HOUR</span> <span class="o">=</span> <span class="mi">60</span>
+<span class="n">BATCH_LENGTH_IN_MINUTES</span> <span class="o">=</span> <span class="mi">230</span> <span class="o">*</span> <span class="n">MINUTES_PER_HOUR</span>
+<span class="n">BATCH_LENGTH_IN_HOURS</span> <span class="o">=</span> <span class="mi">230</span>
+<span class="n">STEP_IN_MINUTES</span> <span class="o">=</span> <span class="mi">12</span>
+<span class="n">STEP_IN_HOURS</span> <span class="o">=</span> <span class="n">STEP_IN_MINUTES</span> <span class="o">/</span> <span class="n">MINUTES_PER_HOUR</span>
+<span class="n">NUM_STEPS</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">BATCH_LENGTH_IN_MINUTES</span> <span class="o">/</span> <span class="n">STEP_IN_MINUTES</span><span class="p">)</span>
+<span class="n">WAVENUMBER_LENGTH</span> <span class="o">=</span> <span class="mi">2200</span>
+
+
+<div class="viewcode-block" id="get_observation_data_reformed"><a class="viewcode-back" href="../../../pensimenv.html#smpl.envs.pensimenv.get_observation_data_reformed">[docs]</a><span class="k">def</span> <span class="nf">get_observation_data_reformed</span><span class="p">(</span><span class="n">observation</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get observation data at t.</span>
+<span class="sd">    vars are Temperature,Acid flow rate,Base flow rate,Cooling water,Heating water,Vessel Weight,Dissolved oxygen concentration </span>
+<span class="sd">    respectively in csv terms, but used abbreviation here to stay consistent with peni_env_setup</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">vars</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;T&#39;</span><span class="p">,</span> <span class="s1">&#39;Fa&#39;</span><span class="p">,</span> <span class="s1">&#39;Fb&#39;</span><span class="p">,</span> <span class="s1">&#39;Fc&#39;</span><span class="p">,</span> <span class="s1">&#39;Fh&#39;</span><span class="p">,</span> <span class="s1">&#39;Wt&#39;</span><span class="p">,</span> <span class="s1">&#39;DO2&#39;</span><span class="p">]</span>
+    <span class="n">pH</span> <span class="o">=</span> <span class="n">observation</span><span class="o">.</span><span class="n">pH</span><span class="o">.</span><span class="n">y</span><span class="p">[</span><span class="n">t</span><span class="p">]</span>
+    <span class="n">pH</span> <span class="o">=</span> <span class="o">-</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">pH</span><span class="p">)</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span> <span class="k">if</span> <span class="n">pH</span> <span class="o">!=</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">pH</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">t</span> <span class="o">*</span> <span class="n">STEP_IN_MINUTES</span> <span class="o">/</span> <span class="n">MINUTES_PER_HOUR</span><span class="p">,</span> <span class="n">pH</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span>
+        <span class="nb">eval</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;observation.</span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2">.y[t]&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;observation&#39;</span><span class="p">:</span> <span class="n">observation</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">:</span> <span class="n">t</span><span class="p">})</span> <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="PenSimEnvGym"><a class="viewcode-back" href="../../../pensimenv.html#smpl.envs.pensimenv.PenSimEnvGym">[docs]</a><span class="k">class</span> <span class="nc">PenSimEnvGym</span><span class="p">(</span><span class="n">PenSimEnv</span><span class="p">,</span> <span class="n">smplEnvBase</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">recipe_combo</span><span class="p">,</span> <span class="n">dense_reward</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">debug_mode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">action_dim</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">observation_dim</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span>
+            <span class="n">reward_function</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">done_calculator</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">max_observations</span><span class="o">=</span><span class="p">[</span><span class="mf">552.0</span><span class="p">,</span> <span class="mf">16.10523</span><span class="p">,</span> <span class="mf">725.6828</span><span class="p">,</span> <span class="mf">13.717274</span><span class="p">,</span> <span class="mf">540.0</span><span class="p">,</span> <span class="mf">3600.0002</span><span class="p">,</span> <span class="mf">1892.07874</span><span class="p">,</span> <span class="mf">253840.11</span><span class="p">,</span> <span class="mf">47.898834</span><span class="p">],</span>
+            <span class="n">min_observations</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">118.98977</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">25003.258</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+            <span class="n">max_actions</span><span class="o">=</span><span class="p">[</span><span class="mf">4100.0</span><span class="p">,</span> <span class="mf">151.0</span><span class="p">,</span> <span class="mf">36.0</span><span class="p">,</span> <span class="mf">76.0</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">,</span> <span class="mf">510.0</span><span class="p">],</span>
+            <span class="n">min_actions</span><span class="o">=</span><span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">7.0</span><span class="p">,</span> <span class="mf">21.0</span><span class="p">,</span> <span class="mf">29.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span>
+            <span class="n">observation_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">action_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">initial_state_deviation_ratio</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+            <span class="n">np_dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">max_steps</span><span class="o">=</span><span class="n">NUM_STEPS</span><span class="p">,</span> <span class="n">error_reward</span><span class="o">=-</span><span class="mf">100.0</span><span class="p">,</span>
+            <span class="n">fast</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">random_seed_max</span><span class="o">=</span><span class="mi">20000</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Time is not in our observation_space. We make the env time unaware and MDP.</span>
+<span class="sd">        _max_episode_steps and random_seed_ref are for PenSimEnv usage.</span>
+<span class="sd">        random_seed_max is the max random seed to be used in the sample_initial_state.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            recipe_combo (RecipeCombo): The recipe combo defined for the PenSimEnv.</span>
+<span class="sd">        </span>
+<span class="sd">        Attributes:</span>
+<span class="sd">            random_seed_ref (int): The random seed used in the sample_initial_state. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">PenSimEnvGym</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">recipe_combo</span><span class="p">,</span> <span class="n">fast</span><span class="o">=</span><span class="n">fast</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_reward</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dense_reward</span> <span class="o">=</span> <span class="n">dense_reward</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="n">normalize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">debug_mode</span> <span class="o">=</span> <span class="n">debug_mode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span> <span class="o">=</span> <span class="n">action_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_dim</span> <span class="o">=</span> <span class="n">observation_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reward_function</span> <span class="o">=</span> <span class="n">reward_function</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">done_calculator</span> <span class="o">=</span> <span class="n">done_calculator</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span> <span class="o">=</span> <span class="n">max_observations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span> <span class="o">=</span> <span class="n">min_observations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span> <span class="o">=</span> <span class="n">max_actions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span> <span class="o">=</span> <span class="n">min_actions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_name</span> <span class="o">=</span> <span class="n">observation_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">action_name</span> <span class="o">=</span> <span class="n">action_name</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">observation_name</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;o_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observation_dim</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">action_name</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Discharge rate&quot;</span><span class="p">,</span> <span class="s2">&quot;,Sugar feed rate&quot;</span><span class="p">,</span> <span class="s2">&quot;Soil bean feed rate&quot;</span><span class="p">,</span> <span class="s2">&quot;Aeration rate&quot;</span><span class="p">,</span>
+                                <span class="s2">&quot;Back pressure&quot;</span><span class="p">,</span> <span class="s2">&quot;Water injection/dilution&quot;</span><span class="p">]</span>  <span class="c1"># discharge, Fs, Foil, Fg, pressure, Fw</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initial_state_deviation_ratio</span> <span class="o">=</span> <span class="n">initial_state_deviation_ratio</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span> <span class="o">=</span> <span class="n">np_dtype</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">=</span> <span class="n">max_steps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_max_episode_steps</span> <span class="o">=</span> <span class="n">max_steps</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_reward</span> <span class="o">=</span> <span class="n">error_reward</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reward_function</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reward_function</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reward_function_standard</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">done_calculator</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">done_calculator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">done_calculator_standard</span>
+
+        <span class="c1"># define the state and action spaces</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">observation_space</span> <span class="o">=</span> <span class="n">spaces</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">low</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observation_dim</span><span class="p">,))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">action_space</span> <span class="o">=</span> <span class="n">spaces</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">low</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span><span class="p">,))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">observation_space</span> <span class="o">=</span> <span class="n">spaces</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span>
+                                                <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">observation_dim</span><span class="p">,))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">action_space</span> <span class="o">=</span> <span class="n">spaces</span><span class="o">.</span><span class="n">Box</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span><span class="p">,))</span>
+        <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">random_seed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_seed_ref</span> <span class="o">=</span> <span class="n">random_seed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">random_seed_max</span> <span class="o">=</span> <span class="n">random_seed_max</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_observation_from_dataset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">6.5</span><span class="p">,</span> <span class="mf">300.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">10.828493</span><span class="p">,</span> <span class="mf">0.0001</span><span class="p">,</span> <span class="mf">150.0</span><span class="p">,</span> <span class="mf">62500.0</span><span class="p">,</span> <span class="mf">14.75</span><span class="p">],</span>
+                                                      <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>  <span class="c1"># init observation generated from dataset.</span>
+
+<div class="viewcode-block" id="PenSimEnvGym.sample_initial_state"><a class="viewcode-back" href="../../../pensimenv.html#smpl.envs.pensimenv.PenSimEnvGym.sample_initial_state">[docs]</a>    <span class="k">def</span> <span class="nf">sample_initial_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">random_seed_ref</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># notice that this function here has to reset the PenSimEnv.</span>
+        <span class="k">if</span> <span class="n">random_seed_ref</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">random_seed_ref</span> <span class="o">=</span> <span class="n">random_seed_ref</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">random_seed_ref</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">random_seed_max</span><span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">x</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="n">observation</span> <span class="o">=</span> <span class="n">get_observation_data_reformed</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">observation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">observation</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">observation</span></div>
+
+<div class="viewcode-block" id="PenSimEnvGym.reset"><a class="viewcode-back" href="../../../pensimenv.html#smpl.envs.pensimenv.PenSimEnvGym.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">random_seed_ref</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_reward</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">done</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="n">observation_0s</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sample_initial_state</span><span class="p">(</span><span class="n">random_seed_ref</span><span class="o">=</span><span class="n">random_seed_ref</span><span class="p">)</span>  <span class="c1"># this observation is all zeros.</span>
+        <span class="n">observation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_observation_from_dataset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_observation</span> <span class="o">=</span> <span class="n">observation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">previous_observation</span> <span class="o">=</span> <span class="n">observation</span>
+
+        <span class="n">normalize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="k">if</span> <span class="n">normalize</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">normalize</span>
+        <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+            <span class="n">observation</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">normalize_spaces</span><span class="p">(</span><span class="n">observation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">observation</span></div>
+
+<div class="viewcode-block" id="PenSimEnvGym.step"><a class="viewcode-back" href="../../../pensimenv.html#smpl.envs.pensimenv.PenSimEnvGym.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug_mode</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;action:&quot;</span><span class="p">,</span> <span class="n">action</span><span class="p">)</span>
+        <span class="n">reward</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">done_info</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">action</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+        <span class="n">normalize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="k">if</span> <span class="n">normalize</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">normalize</span>
+        <span class="k">if</span> <span class="n">normalize</span><span class="p">:</span>
+            <span class="n">action</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">denormalize_spaces</span><span class="p">(</span><span class="n">action</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">step_count</span> <span class="o">+=</span> <span class="mi">1</span>  <span class="c1"># here we increment at front</span>
+            <span class="n">values_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">recipe_combo</span><span class="o">.</span><span class="n">get_values_dict_at</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">step_count</span> <span class="o">*</span> <span class="n">STEP_IN_MINUTES</span><span class="p">)</span>
+            <span class="c1"># served as a batch buffer below</span>
+            <span class="n">pensimpy_observation</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">yield_per_run</span><span class="p">,</span> <span class="n">done</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">step_count</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">action</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">action</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                                                                        <span class="n">action</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+                                                                        <span class="n">action</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">action</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">action</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
+                                                                        <span class="n">values_dict</span><span class="p">[</span><span class="s1">&#39;Fpaa&#39;</span><span class="p">])</span>
+            <span class="c1"># in pensimpy, done = True if k == NUM_STEPS else False</span>
+            <span class="k">if</span> <span class="n">done</span><span class="p">:</span>
+                <span class="n">done_info</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;timeout&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;error_occurred&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;terminal&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">done_info</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;timeout&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;error_occurred&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;terminal&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+            <span class="n">reward</span> <span class="o">=</span> <span class="n">yield_per_run</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x</span>
+            <span class="n">observation</span> <span class="o">=</span> <span class="n">get_observation_data_reformed</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">step_count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">observation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span>
+            <span class="n">done_info</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;timeout&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;error_occurred&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;terminal&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+
+        <span class="n">observation</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">done_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_done_and_reward_calculator</span><span class="p">(</span><span class="n">observation</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span>
+                                                                                           <span class="n">normalize</span><span class="o">=</span><span class="n">normalize</span><span class="p">,</span>
+                                                                                           <span class="n">step_reward</span><span class="o">=</span><span class="n">reward</span><span class="p">,</span>
+                                                                                           <span class="n">done_info</span><span class="o">=</span><span class="n">done_info</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">step_count</span> <span class="o">-=</span> <span class="mi">1</span>  <span class="c1"># we already increment at front.</span>
+        <span class="n">info</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">info</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">done_info</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">observation</span><span class="p">,</span> <span class="n">reward</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">info</span></div></div>
+
+
+<div class="viewcode-block" id="PeniControlData"><a class="viewcode-back" href="../../../pensimenv.html#smpl.envs.pensimenv.PeniControlData">[docs]</a><span class="k">class</span> <span class="nc">PeniControlData</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    dataset class helper, mainly aims to mimic d4rl&#39;s qlearning_dataset format (which returns a dictionary).</span>
+<span class="sd">    produced from PenSimPy generated csvs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">load_just_a_file</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">dataset_folder</span><span class="o">=</span><span class="s1">&#39;examples/example_batches&#39;</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="n">observation_dim</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span>
+                 <span class="n">action_dim</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">np_dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param dataset_folder: where all dataset csv files are living in</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset_folder</span> <span class="o">=</span> <span class="n">dataset_folder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delimiter</span> <span class="o">=</span> <span class="n">delimiter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observation_dim</span> <span class="o">=</span> <span class="n">observation_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span> <span class="o">=</span> <span class="n">action_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="n">normalize</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span> <span class="o">=</span> <span class="n">np_dtype</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span> <span class="o">=</span> <span class="p">[</span><span class="mf">276.0</span><span class="p">,</span> <span class="mf">8.052615</span><span class="p">,</span> <span class="mf">362.8414</span><span class="p">,</span> <span class="mf">6.858637</span><span class="p">,</span> <span class="mf">270.0</span><span class="p">,</span> <span class="mf">1800.0001</span><span class="p">,</span> <span class="mf">946.03937</span><span class="p">,</span> <span class="mf">126920.055</span><span class="p">,</span>
+                                 <span class="mf">23.949417</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.16000001</span><span class="p">,</span> <span class="mf">4.5955915</span><span class="p">,</span> <span class="mf">237.97954</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">50006.516</span><span class="p">,</span> <span class="mf">2.3598127</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span> <span class="o">=</span> <span class="p">[</span><span class="mf">4100.0</span><span class="p">,</span> <span class="mf">151.0</span><span class="p">,</span> <span class="mf">36.0</span><span class="p">,</span> <span class="mf">76.0</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">,</span> <span class="mf">510.0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">7.0</span><span class="p">,</span> <span class="mf">21.0</span><span class="p">,</span> <span class="mf">29.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">np_dtype</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">load_just_a_file</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">file_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">load_just_a_file</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">file_list</span> <span class="o">=</span> <span class="n">get_things_in_loc</span><span class="p">(</span><span class="n">dataset_folder</span><span class="p">,</span> <span class="n">just_files</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">file_list</span> <span class="o">=</span> <span class="n">file_list</span>
+
+<div class="viewcode-block" id="PeniControlData.load_file_list_to_dict"><a class="viewcode-back" href="../../../pensimenv.html#smpl.envs.pensimenv.PeniControlData.load_file_list_to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">load_file_list_to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_list</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">file_list</span> <span class="o">=</span> <span class="n">file_list</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">file_list</span><span class="p">)</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">observations</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">actions</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">next_observations</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">rewards</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">terminals</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">file_path</span> <span class="ow">in</span> <span class="n">file_list</span><span class="p">:</span>
+            <span class="n">tmp_observations</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">tmp_actions</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">tmp_next_observations</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">tmp_rewards</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">tmp_terminals</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">with</span> <span class="n">codecs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+                <span class="n">csv_reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">delimiter</span><span class="p">)</span>
+                <span class="nb">next</span><span class="p">(</span><span class="n">csv_reader</span><span class="p">)</span>
+                <span class="c1"># get rid of the first line containing only titles</span>
+                <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">csv_reader</span><span class="p">:</span>
+                    <span class="n">observation</span> <span class="o">=</span> <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">+</span> <span class="n">row</span><span class="p">[</span><span class="mi">7</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="c1"># there are 9 items: Time Step, pH,Temperature,Acid flow rate,Base flow rate,Cooling water,Heating water,Vessel Weight,Dissolved oxygen concentration</span>
+                    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">observation</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">observation_dim</span>
+                    <span class="n">action</span> <span class="o">=</span> <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span> <span class="n">row</span><span class="p">[</span><span class="mi">6</span><span class="p">]]</span>
+                    <span class="c1"># there are 6 items: Discharge rate,Sugar feed rate,Soil bean feed rate,Aeration rate,Back pressure,Water injection/dilution</span>
+                    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">action</span><span class="p">)</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">action_dim</span>
+                    <span class="n">reward</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">terminal</span> <span class="o">=</span> <span class="kc">False</span>
+                    <span class="n">tmp_observations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">observation</span><span class="p">)</span>
+                    <span class="n">tmp_actions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">action</span><span class="p">)</span>
+                    <span class="n">tmp_rewards</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">reward</span><span class="p">)</span>
+                    <span class="n">tmp_terminals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">terminal</span><span class="p">)</span>
+            <span class="n">tmp_terminals</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">tmp_next_observations</span> <span class="o">=</span> <span class="n">tmp_observations</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">+</span> <span class="p">[</span><span class="n">tmp_observations</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+            <span class="n">observations</span> <span class="o">+=</span> <span class="n">tmp_observations</span>
+            <span class="n">actions</span> <span class="o">+=</span> <span class="n">tmp_actions</span>
+            <span class="n">next_observations</span> <span class="o">+=</span> <span class="n">tmp_next_observations</span>
+            <span class="n">rewards</span> <span class="o">+=</span> <span class="n">tmp_rewards</span>
+            <span class="n">terminals</span> <span class="o">+=</span> <span class="n">tmp_terminals</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;observations&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">observations</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;actions&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">actions</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;next_observations&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">next_observations</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;rewards&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">rewards</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;terminals&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">terminals</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset_max_observations</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;observations&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset_min_observations</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;observations&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset_max_actions</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;actions&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset_min_actions</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;actions&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;max observations:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;min observations:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;dataset max observations:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_max_observations</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;dataset min observations:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_min_observations</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;max actions:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;min actions:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;dataset max actions:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_max_actions</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;dataset min actions:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_min_actions</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;normalize:&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;using max/min observations and actions.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span><span class="p">:</span>
+            <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;observations&#39;</span><span class="p">],</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">normalize_spaces</span><span class="p">(</span><span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;observations&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span>
+                                                             <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">)</span>
+            <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;next_observations&#39;</span><span class="p">],</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">normalize_spaces</span><span class="p">(</span><span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;next_observations&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_observations</span><span class="p">,</span>
+                                                                  <span class="bp">self</span><span class="o">.</span><span class="n">min_observations</span><span class="p">)</span>
+            <span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;actions&#39;</span><span class="p">],</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">normalize_spaces</span><span class="p">(</span><span class="n">dataset</span><span class="p">[</span><span class="s1">&#39;actions&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_actions</span><span class="p">,</span>
+                                                        <span class="bp">self</span><span class="o">.</span><span class="n">min_actions</span><span class="p">)</span>  <span class="c1"># passed in a normalized version.</span>
+        <span class="c1"># self.action_space = spaces.Box(low=-1, high=1, shape=(self.action_dim,))</span>
+        <span class="k">return</span> <span class="n">dataset</span></div>
+
+<div class="viewcode-block" id="PeniControlData.get_dataset"><a class="viewcode-back" href="../../../pensimenv.html#smpl.envs.pensimenv.PeniControlData.get_dataset">[docs]</a>    <span class="k">def</span> <span class="nf">get_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_file_list_to_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">file_list</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, SMPL Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

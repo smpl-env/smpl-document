@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PenSimEnv &mdash; smpl latest documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="BeerFMTEnv" href="beerfmtenv.html" />
+    <link rel="prev" title="AtropineEnv" href="atropineenv.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> smpl
+          </a>
+              <div class="version">
+                latest
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="reactorenv.html">ReactorEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="atropineenv.html">AtropineEnv</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">PenSimEnv</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#pensimenv-module">PenSimEnv module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="beerfmtenv.html">BeerFMTEnv</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mabenv.html">MAbEnv</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/smpl.envs.html">smpl.envs package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">smpl</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>PenSimEnv</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/pensimenv.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  
+<style>
+/* CSS overrides for sphinx_rtd_theme */
+
+/* 24px margin */
+.nbinput.nblast.container,
+.nboutput.nblast.container {
+    margin-bottom: 19px;  /* padding has already 5px */
+}
+
+/* ... except between code cells! */
+.nblast.container + .nbinput.container {
+    margin-top: -19px;
+}
+
+.admonition > p:before {
+    margin-right: 4px;  /* make room for the exclamation icon */
+}
+
+/* Fix math alignment, see https://github.com/rtfd/sphinx_rtd_theme/pull/686 */
+.math {
+    text-align: unset;
+}
+</style>
+<section id="pensimenv">
+<h1>PenSimEnv<a class="headerlink" href="#pensimenv" title="Permalink to this headline"></a></h1>
+<p>The Penicillin Fermentation Env aims to simulate the penicillin production process. The simulation itself is based on <a class="reference external" href="https://github.com/smpl-env/PenSimPy">PenSimPy</a> and <a class="reference external" href="https://www.sciencedirect.com/science/article/abs/pii/S0168165614009377">The development of an industrial-scale fed-batch fermentation simulation</a>.</p>
+<p>There are in total 15 features, namely [‘Discharge rate’, ‘Sugar feed rate’, ‘Soil bean feed rate’, ‘Aeration rate’, ‘Back pressure’, ‘Water injection/dilution’, ‘pH’, ‘Temperature’, ‘Acid flow rate’, ‘Base flow rate’, ‘Cooling water’, ‘Heating water’, ‘Vessel Weight’, ‘Dissolved oxygen concentration’, ‘Yield Per Step’]. By default, we set each episode (or ‘batch’ in the manufacturing industry) to have a duration of 230 hours in real life, and the time interval between each step is 12 minutes. The detailed reactor description is shown below:</p>
+<img alt="_images/pen1.jpeg" src="_images/pen1.jpeg" />
+<p>For a controller, we want to optimize the episode production (or batch yield), while avoiding extreme inputs, outputs, or changes that can potentially break the reactor. In order to maintain the safety constraints, we provide the input and state setpoints (it is an equilibrium, when input=setpoint_input and state=setpoint_state, the state is still setpoint_state for the next step), and we restricted the input search space to be within +/- 10% of setpoint inputs.</p>
+<dl class="simple">
+<dt>We also want to share the performance of a practical baseline recipe and a learnable controller based on Gaussian Process based Bayesian Optimization with the expected improvement acquisition function (gpei), which contains 10 random starts +</dt><dd><p>1000 gpei searches, as shown below:</p>
+</dd>
+</dl>
+<img alt="_images/pen3.png" src="_images/pen3.png" />
+<p>The base penicillin yield (in red diamond point, ~3640 kg) is based on
+the baseline recipe without any optimizations. The first 10 random
+searching results are plotted in green stars and the following 1000 gpei
+searches are displayed in blue stars. The red line refers to the best
+yield so far and the cyan dashed line shows the average yields so far,
+respectively. Also, the time cost for each optimization step (mainly on
+gpei) was recorded and displayed in red. Even though The performance varies on the BayesOpt implementation and configuration, our experiments show that there is around 12% improvement for the best run and 4% on average across all the batches.</p>
+<section id="pensimenv-module">
+<h2>PenSimEnv module<a class="headerlink" href="#pensimenv-module" title="Permalink to this headline"></a></h2>
+<p>Following the discription above, we provide APIs as below:</p>
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">smpl.envs.pensimenv.</span></span><span class="sig-name descname"><span class="pre">PenSimEnvGym</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">recipe_combo,</span> <span class="pre">dense_reward=True,</span> <span class="pre">normalize=True,</span> <span class="pre">debug_mode=False,</span> <span class="pre">action_dim=6,</span> <span class="pre">observation_dim=9,</span> <span class="pre">reward_function=None,</span> <span class="pre">done_calculator=None,</span> <span class="pre">max_observations=[552.0,</span> <span class="pre">16.10523,</span> <span class="pre">725.6828,</span> <span class="pre">13.717274,</span> <span class="pre">540.0,</span> <span class="pre">3600.0002,</span> <span class="pre">1892.07874,</span> <span class="pre">253840.11,</span> <span class="pre">47.898834],</span> <span class="pre">min_observations=[0.0,</span> <span class="pre">0.0,</span> <span class="pre">118.98977,</span> <span class="pre">0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0,</span> <span class="pre">25003.258,</span> <span class="pre">0.0],</span> <span class="pre">max_actions=[4100.0,</span> <span class="pre">151.0,</span> <span class="pre">36.0,</span> <span class="pre">76.0,</span> <span class="pre">1.2,</span> <span class="pre">510.0],</span> <span class="pre">min_actions=[0.0,</span> <span class="pre">7.0,</span> <span class="pre">21.0,</span> <span class="pre">29.0,</span> <span class="pre">0.5,</span> <span class="pre">0.0],</span> <span class="pre">observation_name=None,</span> <span class="pre">action_name=None,</span> <span class="pre">initial_state_deviation_ratio=0.1,</span> <span class="pre">np_dtype=&lt;class</span> <span class="pre">'numpy.float32'&gt;,</span> <span class="pre">max_steps=1150,</span> <span class="pre">error_reward=-100.0,</span> <span class="pre">fast=True,</span> <span class="pre">random_seed=0,</span> <span class="pre">random_seed_max=20000</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/pensimenv.html#PenSimEnvGym"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">pensimpy.peni_env_setup.PenSimEnv</span></code>, <a class="reference internal" href="api/smpl.envs.html#smpl.envs.utils.smplEnvBase" title="smpl.envs.utils.smplEnvBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">smpl.envs.utils.smplEnvBase</span></code></a></p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed_ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/pensimenv.html#PenSimEnvGym.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Setup the envs and return the observation class x.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">sample_initial_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">random_seed_ref</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/pensimenv.html#PenSimEnvGym.sample_initial_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">action</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/pensimenv.html#PenSimEnvGym.step"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Simulate the fermentation process by solving ODE.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">smpl.envs.pensimenv.</span></span><span class="sig-name descname"><span class="pre">PeniControlData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">load_just_a_file=''</span></em>, <em class="sig-param"><span class="pre">dataset_folder='examples/example_batches'</span></em>, <em class="sig-param"><span class="pre">delimiter='</span></em>, <em class="sig-param"><span class="pre">'</span></em>, <em class="sig-param"><span class="pre">observation_dim=9</span></em>, <em class="sig-param"><span class="pre">action_dim=6</span></em>, <em class="sig-param"><span class="pre">normalize=True</span></em>, <em class="sig-param"><span class="pre">np_dtype=&lt;class</span> <span class="pre">'numpy.float32'&gt;</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/pensimenv.html#PeniControlData"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.10)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>dataset class helper, mainly aims to mimic d4rl’s qlearning_dataset format (which returns a dictionary).
+produced from PenSimPy generated csvs.</p>
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_dataset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/pensimenv.html#PeniControlData.get_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">load_file_list_to_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shuffle</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/pensimenv.html#PeniControlData.load_file_list_to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py">
+<span class="sig-prename descclassname"><span class="pre">smpl.envs.pensimenv.</span></span><span class="sig-name descname"><span class="pre">get_observation_data_reformed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">observation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/smpl/envs/pensimenv.html#get_observation_data_reformed"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Get observation data at t.
+vars are Temperature,Acid flow rate,Base flow rate,Cooling water,Heating water,Vessel Weight,Dissolved oxygen concentration
+respectively in csv terms, but used abbreviation here to stay consistent with peni_env_setup</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="atropineenv.html" class="btn btn-neutral float-left" title="AtropineEnv" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="beerfmtenv.html" class="btn btn-neutral float-right" title="BeerFMTEnv" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, SMPL Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
